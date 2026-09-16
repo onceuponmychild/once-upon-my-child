@@ -1,523 +1,480 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Once Upon My Child</title>
-
-    <meta
-        name="description"
-        content="Turn your child's personality, favorite things and family memories into a magical story."
-    >
-
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Once Upon My Child</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
-    <!-- ================= HEADER ================= -->
+  <div class="app-shell">
 
-    <header class="site-header">
-
-        <div class="logo">
-            <span class="logo-star">✦</span>
-            <div>
-                <div class="logo-main">Once Upon</div>
-                <div class="logo-sub">MY CHILD</div>
-            </div>
+    <!-- TOP NAV -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">✦</div>
+        <div>
+          <div class="brand-name">Once Upon My Child</div>
+          <div class="brand-tagline">Turn memories into magical stories</div>
         </div>
+      </div>
 
-        <div class="header-tagline">
-            Little memories. Big stories.
+      <div class="progress-wrap">
+        <span id="stepLabel">Step 1 of 3</span>
+        <div class="progress">
+          <div id="progressBar"></div>
         </div>
-
+      </div>
     </header>
 
-
-    <!-- ================= HERO ================= -->
-
+    <!-- MAIN -->
     <main>
 
-        <section class="hero">
+      <!-- STEP 1 -->
+      <section class="screen active" id="step1">
 
-            <div class="hero-content">
+        <div class="hero">
+          <div class="eyebrow">A story made just for them</div>
 
-                <div class="eyebrow">
-                    ✨ YOUR CHILD'S STORY STARTS HERE
-                </div>
+          <h1>
+            Every child has a story.<br>
+            <span>Let's tell theirs.</span>
+          </h1>
 
-                <h1>
-                    Every child has a story
-                    <span>worth telling.</span>
-                </h1>
+          <p>
+            Tell us about your child, choose the kind of adventure you want,
+            then add the moments and photos that make their story special.
+          </p>
+        </div>
 
-                <p>
-                    Turn your child's personality, favorite things and
-                    special family memories into a magical story they
-                    will ask you to read again and again.
-                </p>
+        <div class="card form-card">
 
-                <button
-                    class="primary-button"
-                    onclick="scrollToStoryForm()"
-                >
-                    Create Their Story
-                    <span>→</span>
-                </button>
+          <div class="section-heading">
+            <div class="section-icon">👧</div>
+            <div>
+              <h2>Meet the star of the story</h2>
+              <p>We'll weave these details throughout the story.</p>
+            </div>
+          </div>
 
-                <div class="hero-trust">
-                    <span>♡</span> Personalized for your child
-                    <span>•</span>
-                    <span>✦</span> Made from your memories
-                </div>
+          <div class="form-grid">
 
+            <div class="field">
+              <label for="childName">Child's name</label>
+              <input
+                type="text"
+                id="childName"
+                placeholder="e.g. Emma"
+              />
             </div>
 
-
-            <div class="hero-illustration">
-
-                <div class="moon"></div>
-
-                <div class="cloud cloud-one"></div>
-                <div class="cloud cloud-two"></div>
-
-                <div class="storybook">
-
-                    <div class="storybook-cover">
-
-                        <div class="book-stars">✦　✧　✦</div>
-
-                        <div class="book-title">
-                            Once Upon<br>
-                            <small>My Child</small>
-                        </div>
-
-                        <div class="book-heart">♥</div>
-
-                    </div>
-
-                </div>
-
-                <div class="floating-star star-one">✦</div>
-                <div class="floating-star star-two">✧</div>
-                <div class="floating-star star-three">✦</div>
-
+            <div class="field">
+              <label for="childAge">Age</label>
+              <select id="childAge">
+                <option value="">Choose age</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+                <option>6</option>
+                <option>7</option>
+                <option>8</option>
+                <option>9</option>
+                <option>10</option>
+                <option>11</option>
+                <option>12</option>
+              </select>
             </div>
 
-        </section>
+            <div class="field full">
+              <label for="personality">Their personality</label>
+              <input
+                type="text"
+                id="personality"
+                placeholder="e.g. curious, funny, adventurous and kind"
+              />
+            </div>
+
+            <div class="field full">
+              <label for="favorites">Favorite things</label>
+              <textarea
+                id="favorites"
+                rows="3"
+                placeholder="e.g. dinosaurs, swimming, unicorns, chocolate ice cream and playing with Dad"
+              ></textarea>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="card form-card">
+
+          <div class="section-heading">
+            <div class="section-icon">✨</div>
+            <div>
+              <h2>Choose their adventure</h2>
+              <p>What kind of story should we create?</p>
+            </div>
+          </div>
+
+          <div class="choice-grid" id="storyTypeChoices">
+
+            <button class="choice-card selected" data-value="Magical Adventure">
+              <span class="choice-emoji">🦄</span>
+              <strong>Magical Adventure</strong>
+              <small>A world filled with wonder</small>
+            </button>
+
+            <button class="choice-card" data-value="Superhero Adventure">
+              <span class="choice-emoji">🦸</span>
+              <strong>Superhero</strong>
+              <small>Bravery, courage and fun</small>
+            </button>
+
+            <button class="choice-card" data-value="Bedtime Adventure">
+              <span class="choice-emoji">🌙</span>
+              <strong>Bedtime</strong>
+              <small>Gentle and dreamy</small>
+            </button>
+
+            <button class="choice-card" data-value="Family Adventure">
+              <span class="choice-emoji">❤️</span>
+              <strong>Family</strong>
+              <small>A story about togetherness</small>
+            </button>
+
+            <button class="choice-card" data-value="Big Day Adventure">
+              <span class="choice-emoji">🎈</span>
+              <strong>Special Day</strong>
+              <small>A birthday or milestone</small>
+            </button>
+
+            <button class="choice-card" data-value="Real Life Adventure">
+              <span class="choice-emoji">🌈</span>
+              <strong>Real-Life</strong>
+              <small>Their memories become the adventure</small>
+            </button>
+
+          </div>
+
+          <div class="form-grid story-options">
+
+            <div class="field">
+              <label for="setting">Story setting</label>
+              <input
+                type="text"
+                id="setting"
+                placeholder="e.g. a magical beach"
+              />
+            </div>
+
+            <div class="field">
+              <label for="lesson">Special message</label>
+              <input
+                type="text"
+                id="lesson"
+                placeholder="e.g. always believe in yourself"
+              />
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="actions">
+          <button class="primary-btn" id="continueToPhotos">
+            Continue to memories
+            <span>→</span>
+          </button>
+        </div>
+
+      </section>
 
 
-        <!-- ================= STORY FORM ================= -->
+      <!-- STEP 2 -->
+      <section class="screen" id="step2">
 
-        <section
-            class="story-section"
-            id="story-form"
-        >
+        <div class="page-header">
+          <button class="back-btn" id="backToDetails">← Back</button>
+
+          <div>
+            <div class="eyebrow">Step 2</div>
+            <h1>Bring their memories to life.</h1>
+            <p>
+              Add as many photos and memories as you like.
+              Each one becomes part of the story.
+            </p>
+          </div>
+        </div>
+
+        <div class="memory-layout">
+
+          <!-- PHOTO UPLOAD -->
+          <div class="card upload-card">
+
+            <div class="upload-header">
+              <div>
+                <h2>📸 Add their moments</h2>
+                <p>You can add multiple photos.</p>
+              </div>
+
+              <span class="photo-count" id="photoCount">0 photos</span>
+            </div>
+
+            <label class="drop-zone" id="dropZone" for="photoInput">
+
+              <div class="upload-icon">＋</div>
+
+              <strong>Add photos</strong>
+
+              <span>
+                Click to choose photos from your device
+              </span>
+
+              <small>
+                JPG, PNG or WEBP · Multiple photos supported
+              </small>
+
+            </label>
+
+            <input
+              type="file"
+              id="photoInput"
+              accept="image/*"
+              multiple
+              hidden
+            />
+
+            <div class="photo-list" id="photoList"></div>
+
+          </div>
+
+
+          <!-- STORY MEMORY -->
+          <div class="card memory-guide">
 
             <div class="section-heading">
+              <div class="section-icon">💭</div>
 
-                <div class="eyebrow">
-                    STEP 01
-                </div>
-
-                <h2>
-                    Tell us about your little one
-                </h2>
-
+              <div>
+                <h2>Tell us what happened</h2>
                 <p>
-                    The more you share, the more personal the story becomes.
+                  The little details make the story feel personal.
                 </p>
+              </div>
+            </div>
+
+            <div class="example-box">
+              <strong>For example:</strong>
+              <p>
+                "This was Emma's first trip to the beach.
+                She was so excited and spent the whole afternoon
+                looking for seashells with Dad."
+              </p>
+            </div>
+
+            <div class="story-tips">
+
+              <div>
+                <span>📍</span>
+                <div>
+                  <strong>Where were you?</strong>
+                  <small>The beach, Grandma's house, the park...</small>
+                </div>
+              </div>
+
+              <div>
+                <span>❤️</span>
+                <div>
+                  <strong>What happened?</strong>
+                  <small>Tell us the special moment.</small>
+                </div>
+              </div>
+
+              <div>
+                <span>😊</span>
+                <div>
+                  <strong>How did they feel?</strong>
+                  <small>Excited, happy, nervous, proud...</small>
+                </div>
+              </div>
 
             </div>
 
+          </div>
 
-            <div class="form-card">
+        </div>
 
-                <form id="storyForm">
 
-                    <!-- CHILD INFORMATION -->
+        <div class="card story-settings">
 
-                    <div class="form-section">
+          <div class="section-heading">
+            <div class="section-icon">📖</div>
 
-                        <div class="form-section-title">
-                            <span>01</span>
-                            About your child
-                        </div>
+            <div>
+              <h2>Story preferences</h2>
+              <p>We'll use these when creating the story.</p>
+            </div>
+          </div>
 
+          <div class="form-grid">
 
-                        <div class="form-grid">
+            <div class="field">
+              <label for="storyLength">Story length</label>
 
-                            <div class="field">
+              <select id="storyLength">
+                <option value="short">Short & sweet</option>
+                <option value="medium" selected>Classic story</option>
+                <option value="long">Long adventure</option>
+              </select>
+            </div>
 
-                                <label for="childName">
-                                    Child's name
-                                </label>
+            <div class="field">
+              <label for="storyTone">Story feeling</label>
 
-                                <input
-                                    type="text"
-                                    id="childName"
-                                    placeholder="e.g. Emma"
-                                    required
-                                >
+              <select id="storyTone">
+                <option value="warm">Warm & loving</option>
+                <option value="magical">Magical & whimsical</option>
+                <option value="funny">Funny & playful</option>
+                <option value="adventurous">Exciting & adventurous</option>
+                <option value="calm">Gentle & peaceful</option>
+              </select>
+            </div>
 
-                            </div>
+          </div>
 
+        </div>
 
-                            <div class="field">
+        <div class="actions split-actions">
 
-                                <label for="childAge">
-                                    Age
-                                </label>
+          <button class="secondary-btn" id="addMemoryBtn">
+            + Add another memory
+          </button>
 
-                                <select id="childAge">
+          <button class="primary-btn" id="createStoryBtn">
+            Create their story
+            <span>✨</span>
+          </button>
 
-                                    <option value="">
-                                        Select age
-                                    </option>
+        </div>
 
-                                    <option>1</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                    <option>4</option>
-                                    <option>5</option>
-                                    <option>6</option>
-                                    <option>7</option>
-                                    <option>8</option>
-                                    <option>9</option>
-                                    <option>10</option>
-                                    <option>11</option>
-                                    <option>12</option>
+      </section>
 
-                                </select>
 
-                            </div>
+      <!-- STEP 3 -->
+      <section class="screen" id="step3">
 
-                        </div>
+        <div class="story-top">
 
+          <div>
+            <div class="eyebrow">Their story is ready</div>
 
-                        <div class="field">
+            <h1 id="storyTitle">
+              Once Upon a Time...
+            </h1>
 
-                            <label for="personality">
-                                What is their personality like?
-                            </label>
+            <p id="storySubtitle"></p>
+          </div>
 
-                            <textarea
-                                id="personality"
-                                placeholder="e.g. Curious, adventurous, funny and always asking questions..."
-                            ></textarea>
+          <button class="secondary-btn" id="editStoryBtn">
+            ← Edit story
+          </button>
 
-                        </div>
+        </div>
 
 
-                        <div class="field">
+        <div class="storybook" id="storybook">
 
-                            <label for="favorites">
-                                What are their favorite things?
-                            </label>
+          <!-- STORY COVER -->
+          <article class="story-page cover-page">
 
-                            <textarea
-                                id="favorites"
-                                placeholder="e.g. Dinosaurs, unicorns, chocolate cake, the beach and dancing..."
-                            ></textarea>
+            <div class="cover-decoration">✦</div>
 
-                        </div>
+            <div class="cover-photo-wrap" id="coverPhotoWrap">
+              <div class="cover-placeholder">📖</div>
+            </div>
 
-                    </div>
+            <div class="cover-content">
 
+              <div class="cover-kicker">
+                A very special story about
+              </div>
 
-                    <!-- MEMORY -->
-
-                    <div class="form-section">
-
-                        <div class="form-section-title">
-                            <span>02</span>
-                            Add a special memory
-                        </div>
-
-
-                        <div class="field">
-
-                            <label for="memory">
-                                Tell us about a moment you'll always remember
-                            </label>
-
-                            <textarea
-                                id="memory"
-                                placeholder="e.g. The first time Emma saw the ocean, she ran straight into the water laughing..."
-                            ></textarea>
-
-                        </div>
-
-
-                        <div class="field">
-
-                            <label for="family">
-                                Family members or special people
-                            </label>
-
-                            <input
-                                type="text"
-                                id="family"
-                                placeholder="e.g. Mommy, Daddy, Grandma, Grandpa and Max the dog"
-                            >
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- ADVENTURE -->
-
-                    <div class="form-section">
-
-                        <div class="form-section-title">
-                            <span>03</span>
-                            Choose their adventure
-                        </div>
-
-
-                        <div class="adventure-grid">
-
-                            <label class="adventure-option">
-
-                                <input
-                                    type="radio"
-                                    name="adventure"
-                                    value="magical"
-                                    checked
-                                >
-
-                                <div class="adventure-card">
-                                    <div class="adventure-icon">🦄</div>
-                                    <strong>Magical Kingdom</strong>
-                                    <small>Fairies, stars & wonder</small>
-                                </div>
-
-                            </label>
-
-
-                            <label class="adventure-option">
-
-                                <input
-                                    type="radio"
-                                    name="adventure"
-                                    value="space"
-                                >
-
-                                <div class="adventure-card">
-                                    <div class="adventure-icon">🚀</div>
-                                    <strong>Space Adventure</strong>
-                                    <small>Planets, rockets & discovery</small>
-                                </div>
-
-                            </label>
-
-
-                            <label class="adventure-option">
-
-                                <input
-                                    type="radio"
-                                    name="adventure"
-                                    value="ocean"
-                                >
-
-                                <div class="adventure-card">
-                                    <div class="adventure-icon">🌊</div>
-                                    <strong>Ocean Journey</strong>
-                                    <small>Waves, islands & treasure</small>
-                                </div>
-
-                            </label>
-
-
-                            <label class="adventure-option">
-
-                                <input
-                                    type="radio"
-                                    name="adventure"
-                                    value="forest"
-                                >
-
-                                <div class="adventure-card">
-                                    <div class="adventure-icon">🌲</div>
-                                    <strong>Enchanted Forest</strong>
-                                    <small>Animals, mystery & adventure</small>
-                                </div>
-
-                            </label>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- PHOTO -->
-
-                    <div class="form-section">
-
-                        <div class="form-section-title">
-                            <span>04</span>
-                            Add their photo
-                        </div>
-
-
-                        <div class="upload-box">
-
-                            <input
-                                type="file"
-                                id="childPhoto"
-                                accept="image/*"
-                            >
-
-                            <div class="upload-icon">
-                                📸
-                            </div>
-
-                            <strong>
-                                Add a favorite photo
-                            </strong>
-
-                            <p>
-                                This will be used in their memory book later.
-                            </p>
-
-                            <span class="upload-button">
-                                Choose Photo
-                            </span>
-
-                        </div>
-
-
-                        <div
-                            id="photoPreview"
-                            class="photo-preview"
-                        ></div>
-
-                    </div>
-
-
-                    <!-- GENERATE -->
-
-                    <div class="generate-area">
-
-                        <button
-                            type="submit"
-                            class="generate-button"
-                        >
-                            <span>✨</span>
-                            Create My Child's Story
-                            <span>→</span>
-                        </button>
-
-                        <p>
-                            Your story will be created from the memories
-                            you provide.
-                        </p>
-
-                    </div>
-
-                </form>
+              <h2 id="coverChildName">
+                Your Child
+              </h2>
+
+              <p id="coverStoryType">
+                A Magical Adventure
+              </p>
+
+              <div class="cover-stars">
+                ✦ ✧ ✦
+              </div>
 
             </div>
 
-        </section>
+          </article>
 
 
-        <!-- ================= STORY OUTPUT ================= -->
-
-        <section
-            class="story-output-section hidden"
-            id="storyOutput"
-        >
-
-            <div class="section-heading">
-
-                <div class="eyebrow">
-                    ✨ THEIR STORY
-                </div>
-
-                <h2 id="storyHeading">
-                    Once Upon A Time...
-                </h2>
-
-            </div>
+          <!-- GENERATED PAGES -->
+          <div id="generatedPages"></div>
 
 
-            <div class="story-book">
+          <!-- END PAGE -->
+          <article class="story-page ending-page">
 
-                <div class="story-decoration top-left">
-                    ✦
-                </div>
+            <div class="ending-icon">♥</div>
 
-                <div class="story-decoration top-right">
-                    ✧
-                </div>
+            <h2>And that was only the beginning...</h2>
 
-                <div class="story-content">
+            <p id="endingText"></p>
 
-                    <div
-                        id="storyPhoto"
-                        class="story-photo"
-                    ></div>
+            <div class="ending-line"></div>
 
-                    <div
-                        id="storyText"
-                        class="story-text"
-                    ></div>
+            <strong>
+              The End
+            </strong>
 
-                </div>
+            <small>
+              Made with love by Once Upon My Child
+            </small>
 
-                <div class="story-footer">
-                    Made with love by Once Upon My Child ♡
-                </div>
+          </article>
 
-            </div>
+        </div>
 
 
-            <div class="story-actions">
+        <div class="story-actions">
 
-                <button
-                    class="secondary-button"
-                    onclick="createAnotherStory()"
-                >
-                    ← Create Another Story
-                </button>
+          <button class="secondary-btn" id="startOverBtn">
+            Create another story
+          </button>
 
-                <button
-                    class="primary-button"
-                    onclick="window.print()"
-                >
-                    Print Story
-                </button>
+          <button class="primary-btn" id="printStoryBtn">
+            Print / Save Story
+            <span>↗</span>
+          </button>
 
-            </div>
+        </div>
 
-        </section>
+      </section>
 
     </main>
 
-
-    <!-- ================= FOOTER ================= -->
-
     <footer>
-
-        <div class="footer-logo">
-            ✦ Once Upon My Child
-        </div>
-
-        <p>
-            Turning childhood memories into stories worth keeping.
-        </p>
-
-        <div class="footer-small">
-            © 2026 Once Upon My Child
-        </div>
-
+      <span>Once Upon My Child</span>
+      <span>Every memory deserves a story. ✦</span>
     </footer>
 
+  </div>
 
-    <script src="app.js"></script>
-
+  <script src="app.js"></script>
 </body>
 </html>
