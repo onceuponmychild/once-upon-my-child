@@ -1,0 +1,260 @@
+export default async function handler(req, res) {
+
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
+  }
+
+  try {
+
+    const {
+      child,
+      story,
+      memories
+    } = req.body || {};
+
+    if (!child || !child.name) {
+      return res.status(400).json({
+        error: "Child information is required."
+      });
+    }
+
+    const memoryText = (memories || [])
+      .map((memory, index) => {
+
+        return `
+MEMORY ${index + 1}
+
+Photo description:
+${memory.description || "No description provided."}
+        `;
+
+      })
+      .join("\n");
+
+
+    const prompt = `
+You are the lead children's book author for
+"Once Upon My Child."
+
+Your job is to transform a child's real memories
+into a magical, emotionally warm personalized
+children's story.
+
+IMPORTANT:
+
+- The child must be the main character.
+- Use the child's real name naturally.
+- Respect the child's age.
+- Use their personality throughout the story.
+- Naturally incorporate their favorite things.
+- Use the uploaded memory descriptions as actual
+  events in the story.
+- Do NOT simply list or caption the memories.
+- Connect the memories into one continuous narrative.
+- The story should feel magical but emotionally believable.
+- Never invent sensitive personal information.
+- Never create frightening, violent or inappropriate content.
+- Keep the language appropriate for a young child.
+- The special lesson should be woven naturally into
+  the story rather than stated repeatedly.
+- Give the story a satisfying ending.
+- Make the story feel like something a parent would
+  want to read repeatedly at bedtime.
+
+CHILD
+
+Name:
+${child.name}
+
+Age:
+${child.age}
+
+Personality:
+${child.personality || "curious, kind and adventurous"}
+
+Favorite things:
+${child.favorites || "the things that make them happy"}
+
+
+STORY PREFERENCES
+
+Story type:
+${story.type || "Magical Adventure"}
+
+Setting:
+${story.setting || "a magical world"}
+
+Tone:
+${story.tone || "warm and loving"}
+
+Lesson:
+${story.lesson || "believing in yourself"}
+
+Length:
+${story.length || "medium"}
+
+
+REAL MEMORIES
+
+${memoryText}
+
+
+CREATE A 10-PAGE CHILDREN'S STORY.
+
+Return ONLY valid JSON using this exact structure:
+
+{
+  "title": "Story title",
+  "subtitle": "Short subtitle",
+  "dedication": "A short loving dedication",
+  "pages": [
+    {
+      "page": 1,
+      "type": "dedication",
+      "heading": "Page heading",
+      "text": "Story text"
+    },
+    {
+      "page": 2,
+      "type": "introduction",
+      "heading": "Page heading",
+      "text": "Story text"
+    },
+    {
+      "page": 3,
+      "type": "adventure",
+      "heading": "Page heading",
+      "text": "Story text"
+    },
+    {
+      "page": 4,
+      "type": "adventure",
+      "heading": "Page heading",
+      "text": "Story text"
+    },
+    {
+      "page": 5,
+      "type": "discovery",
+      "heading": "Page heading",
+      "text": "Story text"
+    },
+    {
+      "page": 6,
+      "type": "challenge",
+      "heading": "Page heading",
+      "text": "Story text"
+    },
+    {
+      "page": 7,
+      "type": "magical",
+      "heading": "Page heading",
+      "text": "Story text"
+    },
+    {
+      "page": 8,
+      "type": "solution",
+      "heading": "Page heading",
+      "text": "Story text"
+    },
+    {
+      "page": 9,
+      "type": "resolution",
+      "heading": "Page heading",
+      "text": "Story text"
+    }
+  ],
+  "ending": "A warm goodnight ending."
+}
+`;
+
+
+    const response = await fetch(
+      "https://api.openai.com/v1/responses",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization":
+            `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+
+        body: JSON.stringify({
+
+          model: "gpt-5.6-mini",
+
+          input: prompt,
+
+          max_output_tokens: 5000
+
+        })
+      }
+    );
+
+
+    if (!response.ok) {
+
+      const errorText = await response.text();
+
+      console.error(errorText);
+
+      return res.status(500).json({
+        error: "AI story generation failed."
+      });
+    }
+
+
+    const data = await response.json();
+
+
+    const output =
+      data.output_text ||
+      data.output?.[0]?.content?.[0]?.text ||
+      "";
+
+
+    if (!output) {
+
+      return res.status(500).json({
+        error: "The AI returned an empty story."
+      });
+
+    }
+
+
+    let storyData;
+
+    try {
+
+      storyData = JSON.parse(output);
+
+    } catch (parseError) {
+
+      console.error(
+        "AI JSON parsing failed:",
+        output
+      );
+
+      return res.status(500).json({
+        error: "The AI returned an invalid story format."
+      });
+
+    }
+
+
+    return res.status(200).json(storyData);
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Something went wrong while creating the story."
+    });
+
+  }
+
+}
