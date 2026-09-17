@@ -1,3 +1,4 @@
+```javascript
 const state = {
   currentStep: 1,
 
@@ -162,15 +163,20 @@ function collectChildDetails() {
   state.child.personality = personality?.value.trim() || "";
   state.child.favorites = favorites?.value.trim() || "";
 
-  state.story.setting = setting?.value.trim() || state.story.setting;
-  state.story.lesson = lesson?.value.trim() || "";
+  state.story.setting =
+    setting?.value.trim() || state.story.setting;
+
+  state.story.lesson =
+    lesson?.value.trim() || "";
 
   if (storyLength) {
-    state.story.length = storyLength.value || state.story.length;
+    state.story.length =
+      storyLength.value || state.story.length;
   }
 
   if (storyTone) {
-    state.story.tone = storyTone.value || state.story.tone;
+    state.story.tone =
+      storyTone.value || state.story.tone;
   }
 }
 
@@ -184,6 +190,9 @@ function setupPhotoUpload() {
   if (photoInput) {
     photoInput.addEventListener("change", event => {
       addPhotos(event.target.files);
+
+      // Allows the same file to be selected again later.
+      event.target.value = "";
     });
   }
 
@@ -211,9 +220,13 @@ function setupPhotoUpload() {
 
 function addPhotos(files) {
 
+  if (!files) return;
+
   Array.from(files).forEach(file => {
 
-    if (!file.type.startsWith("image/")) return;
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
 
     const photo = {
       id: Date.now() + Math.random(),
@@ -243,7 +256,10 @@ function renderPhotos() {
 
     item.innerHTML = `
       <div class="photo-preview">
-        <img src="${photo.url}" alt="Photo ${index + 1}">
+        <img
+          src="${photo.url}"
+          alt="Photo ${index + 1}"
+        >
       </div>
 
       <div class="photo-info">
@@ -290,6 +306,9 @@ function renderPhotos() {
     photoList.appendChild(item);
   });
 
+
+  // MEMORY INPUTS
+
   document.querySelectorAll(".memory-input").forEach(input => {
 
     input.addEventListener("input", event => {
@@ -307,6 +326,9 @@ function renderPhotos() {
 
   });
 
+
+  // DELETE
+
   document.querySelectorAll(".photo-delete").forEach(button => {
 
     button.addEventListener("click", () => {
@@ -319,7 +341,9 @@ function renderPhotos() {
 
       if (index !== -1) {
 
-        URL.revokeObjectURL(state.photos[index].url);
+        URL.revokeObjectURL(
+          state.photos[index].url
+        );
 
         state.photos.splice(index, 1);
 
@@ -330,23 +354,38 @@ function renderPhotos() {
 
   });
 
+
+  // MOVE UP
+
   document.querySelectorAll(".photo-up").forEach(button => {
 
     button.addEventListener("click", () => {
 
-      movePhoto(Number(button.dataset.id), -1);
+      movePhoto(
+        Number(button.dataset.id),
+        -1
+      );
+
     });
 
   });
+
+
+  // MOVE DOWN
 
   document.querySelectorAll(".photo-down").forEach(button => {
 
     button.addEventListener("click", () => {
 
-      movePhoto(Number(button.dataset.id), 1);
+      movePhoto(
+        Number(button.dataset.id),
+        1
+      );
+
     });
 
   });
+
 
   if (photoCount) {
     photoCount.textContent =
@@ -377,9 +416,149 @@ function movePhoto(id, direction) {
   state.photos[index] =
     state.photos[newIndex];
 
-  state.photos[newIndex] = temp;
+  state.photos[newIndex] =
+    temp;
 
   renderPhotos();
+}
+
+
+// ===============================
+// IMAGE COMPRESSION
+// ===============================
+
+function compressImage(file) {
+
+  return new Promise((resolve, reject) => {
+
+    const reader = new FileReader();
+
+    reader.onload = event => {
+
+      const image = new Image();
+
+      image.onload = () => {
+
+        const maxDimension = 1600;
+
+        let width = image.width;
+        let height = image.height;
+
+        if (width > maxDimension || height > maxDimension) {
+
+          if (width > height) {
+
+            height =
+              Math.round(
+                height * maxDimension / width
+              );
+
+            width = maxDimension;
+
+          } else {
+
+            width =
+              Math.round(
+                width * maxDimension / height
+              );
+
+            height = maxDimension;
+          }
+        }
+
+
+        const canvas =
+          document.createElement("canvas");
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const context =
+          canvas.getContext("2d");
+
+        context.drawImage(
+          image,
+          0,
+          0,
+          width,
+          height
+        );
+
+
+        // JPEG keeps the request size manageable.
+        const dataUrl =
+          canvas.toDataURL(
+            "image/jpeg",
+            0.78
+          );
+
+        resolve(dataUrl);
+      };
+
+
+      image.onerror = () => {
+        reject(
+          new Error(
+            "One of the uploaded photos could not be processed."
+          )
+        );
+      };
+
+
+      image.src = event.target.result;
+    };
+
+
+    reader.onerror = () => {
+      reject(
+        new Error(
+          "Could not read one of the uploaded photos."
+        )
+      );
+    };
+
+
+    reader.readAsDataURL(file);
+  });
+}
+
+
+// ===============================
+// PREPARE PHOTOS FOR AI
+// ===============================
+
+async function preparePhotosForAI() {
+
+  const preparedPhotos = [];
+
+  for (
+    let index = 0;
+    index < state.photos.length;
+    index++
+  ) {
+
+    const photo = state.photos[index];
+
+    const imageData =
+      await compressImage(photo.file);
+
+    preparedPhotos.push({
+
+      index: index,
+
+      memory:
+        photo.memory || "",
+
+      fileName:
+        photo.file?.name || "",
+
+      image:
+        imageData
+
+    });
+  }
+
+  return preparedPhotos;
 }
 
 
@@ -412,9 +591,19 @@ async function generateAIStory() {
   createStoryBtn.disabled = true;
 
   createStoryBtn.textContent =
-    "✨ Creating your story...";
+    "✨ Preparing your memories...";
+
 
   try {
+
+    // Convert actual photos into AI-readable image data.
+    const memories =
+      await preparePhotosForAI();
+
+
+    createStoryBtn.textContent =
+      "✨ Creating your story...";
+
 
     const requestData = {
 
@@ -422,11 +611,7 @@ async function generateAIStory() {
 
       story: state.story,
 
-      memories: state.photos.map((photo, index) => ({
-        index: index,
-        memory: photo.memory || "",
-        fileName: photo.file?.name || ""
-      }))
+      memories: memories
 
     };
 
@@ -445,7 +630,15 @@ async function generateAIStory() {
     );
 
 
-    const data = await response.json();
+    let data;
+
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error(
+        "The server returned an invalid response."
+      );
+    }
 
 
     if (!response.ok) {
@@ -467,9 +660,12 @@ async function generateAIStory() {
     }
 
 
-    state.generatedStory = data.story;
+    state.generatedStory =
+      data.story;
+
 
     renderAIStory();
+
 
     state.currentStep = 3;
 
@@ -477,9 +673,14 @@ async function generateAIStory() {
 
   }
 
+
   catch (error) {
 
-    console.error("AI STORY ERROR:", error);
+    console.error(
+      "AI STORY ERROR:",
+      error
+    );
+
 
     alert(
       "We couldn't create the story yet.\n\n" +
@@ -488,12 +689,14 @@ async function generateAIStory() {
 
   }
 
+
   finally {
 
     createStoryBtn.disabled = false;
 
     createStoryBtn.textContent =
-      originalText || "Create My Story";
+      originalText ||
+      "Create My Story";
 
   }
 }
@@ -505,7 +708,8 @@ async function generateAIStory() {
 
 function renderAIStory() {
 
-  const story = state.generatedStory;
+  const story =
+    state.generatedStory;
 
   if (!story) return;
 
@@ -513,26 +717,42 @@ function renderAIStory() {
   // TITLE
 
   if (storyTitle) {
+
     storyTitle.textContent =
-      story.title || "Our Story";
+      story.title ||
+      "Our Story";
+
   }
 
+
+  // SUBTITLE
 
   if (storySubtitle) {
+
     storySubtitle.textContent =
-      story.subtitle || "";
+      story.subtitle ||
+      "";
+
   }
 
+
+  // CHILD NAME
 
   if (coverChildName) {
+
     coverChildName.textContent =
       state.child.name;
+
   }
 
 
+  // STORY TYPE
+
   if (coverStoryType) {
+
     coverStoryType.textContent =
       state.story.type;
+
   }
 
 
@@ -560,14 +780,15 @@ function renderAIStory() {
     generatedPages.innerHTML = "";
 
 
-    // Dedication
+    // DEDICATION
 
     if (story.dedication) {
 
       const dedication =
         document.createElement("div");
 
-      dedication.className = "story-page";
+      dedication.className =
+        "story-page";
 
       dedication.innerHTML = `
         <div class="story-page-content">
@@ -577,17 +798,21 @@ function renderAIStory() {
           </div>
 
           <p class="story-text">
-            ${escapeHtml(story.dedication)}
+            ${escapeHtml(
+              story.dedication
+            )}
           </p>
 
         </div>
       `;
 
-      generatedPages.appendChild(dedication);
+      generatedPages.appendChild(
+        dedication
+      );
     }
 
 
-    // AI pages
+    // AI PAGES
 
     (story.pages || []).forEach(
       (page, index) => {
@@ -601,6 +826,7 @@ function renderAIStory() {
 
         let imageHTML = "";
 
+
         let photoIndex =
           typeof page.photoIndex === "number"
             ? page.photoIndex
@@ -609,15 +835,18 @@ function renderAIStory() {
 
         if (
           state.photos.length > 0 &&
+          photoIndex >= 0 &&
           photoIndex < state.photos.length
         ) {
 
           imageHTML = `
             <div class="story-page-image">
+
               <img
                 src="${state.photos[photoIndex].url}"
                 alt="Memory ${photoIndex + 1}"
               >
+
             </div>
           `;
 
@@ -639,7 +868,8 @@ function renderAIStory() {
 
             <p class="story-text">
               ${escapeHtml(
-                page.text || ""
+                page.text ||
+                ""
               )}
             </p>
 
@@ -647,9 +877,11 @@ function renderAIStory() {
 
         `;
 
+
         generatedPages.appendChild(
           pageElement
         );
+
       }
     );
 
@@ -663,6 +895,7 @@ function renderAIStory() {
     endingText.textContent =
       story.ending ||
       `And that was the beginning of another wonderful adventure for ${state.child.name}.`;
+
   }
 }
 
@@ -682,6 +915,7 @@ if (continueToPhotos) {
       state.currentStep = 2;
 
       updateStepUI();
+
     }
   );
 
@@ -697,6 +931,7 @@ if (backToDetails) {
       state.currentStep = 1;
 
       updateStepUI();
+
     }
   );
 
@@ -722,6 +957,7 @@ if (editStoryBtn) {
       state.currentStep = 1;
 
       updateStepUI();
+
     }
   );
 
@@ -782,14 +1018,33 @@ if (addMemoryBtn) {
 
 function escapeHtml(value) {
 
-  if (value === null || value === undefined) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return "";
   }
 
   return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 }
+```
