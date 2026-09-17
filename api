@@ -1,4 +1,7 @@
 export default async function handler(req, res) {
+  // --------------------------------------------------
+  // ONLY ACCEPT POST REQUESTS
+  // --------------------------------------------------
 
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -6,64 +9,103 @@ export default async function handler(req, res) {
     });
   }
 
-  try {
+  // --------------------------------------------------
+  // CHECK OPENAI KEY
+  // --------------------------------------------------
 
+  if (!process.env.OPENAI_API_KEY) {
+    console.error("OPENAI_API_KEY is missing.");
+
+    return res.status(500).json({
+      error: "AI Story Engine is not configured."
+    });
+  }
+
+  try {
     const {
-      child,
-      story,
-      memories
+      child = {},
+      story = {},
+      memories = []
     } = req.body || {};
 
-    if (!child || !child.name) {
+    // --------------------------------------------------
+    // VALIDATE CHILD
+    // --------------------------------------------------
+
+    if (!child.name) {
       return res.status(400).json({
-        error: "Child information is required."
+        error: "Child's name is required."
       });
     }
 
-    const memoryText = (memories || [])
-      .map((memory, index) => {
+    if (!child.age) {
+      return res.status(400).json({
+        error: "Child's age is required."
+      });
+    }
 
+    // --------------------------------------------------
+    // VALIDATE MEMORIES
+    // --------------------------------------------------
+
+    if (!Array.isArray(memories) || memories.length === 0) {
+      return res.status(400).json({
+        error: "At least one memory is required."
+      });
+    }
+
+    // --------------------------------------------------
+    // BUILD MEMORY INFORMATION
+    // --------------------------------------------------
+
+    const memoryText = memories
+      .slice(0, 10)
+      .map((memory, index) => {
         return `
 MEMORY ${index + 1}
 
-Photo description:
-${memory.description || "No description provided."}
-        `;
+Parent's description:
+${memory.description || memory.memory || "No description provided."}
 
+Photo filename:
+${memory.fileName || memory.name || "Unknown"}
+`;
       })
       .join("\n");
 
+    // --------------------------------------------------
+    // CREATE STORY PROMPT
+    // --------------------------------------------------
 
     const prompt = `
 You are the lead children's book author for
 "Once Upon My Child."
 
-Your job is to transform a child's real memories
-into a magical, emotionally warm personalized
-children's story.
+You create premium personalized children's
+memory books using real family memories.
+
+The child must feel like the hero of their own story.
 
 IMPORTANT:
 
-- The child must be the main character.
-- Use the child's real name naturally.
+- Use the child's real name.
 - Respect the child's age.
-- Use their personality throughout the story.
-- Naturally incorporate their favorite things.
-- Use the uploaded memory descriptions as actual
-  events in the story.
-- Do NOT simply list or caption the memories.
-- Connect the memories into one continuous narrative.
-- The story should feel magical but emotionally believable.
-- Never invent sensitive personal information.
-- Never create frightening, violent or inappropriate content.
-- Keep the language appropriate for a young child.
-- The special lesson should be woven naturally into
-  the story rather than stated repeatedly.
-- Give the story a satisfying ending.
-- Make the story feel like something a parent would
-  want to read repeatedly at bedtime.
+- Make the child the central character.
+- Use their personality naturally.
+- Include their favorite things naturally.
+- Turn the memories into one connected story.
+- Do not simply caption the memories.
+- Do not simply list the memories.
+- Do not invent sensitive personal information.
+- Do not invent major life events.
+- Do not use frightening, violent or inappropriate content.
+- Keep the story warm, imaginative and emotionally safe.
+- Use age-appropriate language.
+- Create a story a parent would genuinely enjoy reading at bedtime.
+- Make the ending emotionally satisfying.
+- Weave the requested lesson naturally into the story.
 
-CHILD
+CHILD INFORMATION
 
 Name:
 ${child.name}
@@ -75,7 +117,7 @@ Personality:
 ${child.personality || "curious, kind and adventurous"}
 
 Favorite things:
-${child.favorites || "the things that make them happy"}
+${child.favorites || "things that make the child happy"}
 
 
 STORY PREFERENCES
@@ -96,19 +138,56 @@ Length:
 ${story.length || "medium"}
 
 
-REAL MEMORIES
+REAL FAMILY MEMORIES
 
 ${memoryText}
 
 
-CREATE A 10-PAGE CHILDREN'S STORY.
+CREATE A 10-PAGE CHILDREN'S PICTURE BOOK STORY.
 
-Return ONLY valid JSON using this exact structure:
+Structure:
+
+Page 1:
+Opening / dedication
+
+Page 2:
+Introduce the child
+
+Page 3:
+Begin the adventure
+
+Page 4:
+Develop the adventure using a real memory
+
+Page 5:
+Discovery and wonder
+
+Page 6:
+A gentle challenge
+
+Page 7:
+Magical or emotional turning point
+
+Page 8:
+Resolution
+
+Page 9:
+Emotional payoff
+
+Page 10:
+Warm ending / goodnight
+
+Each page should contain approximately
+60-120 words depending on the child's age.
+
+Return ONLY valid JSON.
+
+Use exactly this structure:
 
 {
   "title": "Story title",
   "subtitle": "Short subtitle",
-  "dedication": "A short loving dedication",
+  "dedication": "Short loving dedication",
   "pages": [
     {
       "page": 1,
@@ -163,12 +242,21 @@ Return ONLY valid JSON using this exact structure:
       "type": "resolution",
       "heading": "Page heading",
       "text": "Story text"
+    },
+    {
+      "page": 10,
+      "type": "ending",
+      "heading": "Page heading",
+      "text": "Story text"
     }
   ],
-  "ending": "A warm goodnight ending."
+  "ending": "Warm final ending"
 }
 `;
 
+    // --------------------------------------------------
+    // CALL OPENAI
+    // --------------------------------------------------
 
     const response = await fetch(
       "https://api.openai.com/v1/responses",
@@ -182,79 +270,134 @@ Return ONLY valid JSON using this exact structure:
         },
 
         body: JSON.stringify({
+          model: "gpt-5.6-luna",
 
-          model: "gpt-5.6-mini",
+          input: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "input_text",
+                  text: prompt
+                }
+              ]
+            }
+          ],
 
-          input: prompt,
-
-          max_output_tokens: 5000
-
+          max_output_tokens: 6000
         })
       }
     );
 
+    // --------------------------------------------------
+    // HANDLE OPENAI ERROR
+    // --------------------------------------------------
 
     if (!response.ok) {
-
       const errorText = await response.text();
 
-      console.error(errorText);
+      console.error(
+        "OpenAI API error:",
+        errorText
+      );
 
       return res.status(500).json({
         error: "AI story generation failed."
       });
     }
 
+    // --------------------------------------------------
+    // READ OPENAI RESPONSE
+    // --------------------------------------------------
 
     const data = await response.json();
 
-
     const output =
       data.output_text ||
-      data.output?.[0]?.content?.[0]?.text ||
+      data.output
+        ?.flatMap(item => item.content || [])
+        ?.find(item => item.type === "output_text")
+        ?.text ||
       "";
 
-
     if (!output) {
+      console.error(
+        "OpenAI returned no story.",
+        data
+      );
 
       return res.status(500).json({
         error: "The AI returned an empty story."
       });
-
     }
 
+    // --------------------------------------------------
+    // CLEAN RESPONSE
+    // --------------------------------------------------
+
+    let cleanedOutput = output.trim();
+
+    if (cleanedOutput.startsWith("```json")) {
+      cleanedOutput = cleanedOutput
+        .replace(/^```json\s*/, "")
+        .replace(/\s*```$/, "");
+    }
+
+    if (cleanedOutput.startsWith("```")) {
+      cleanedOutput = cleanedOutput
+        .replace(/^```\s*/, "")
+        .replace(/\s*```$/, "");
+    }
+
+    // --------------------------------------------------
+    // PARSE JSON
+    // --------------------------------------------------
 
     let storyData;
 
     try {
-
-      storyData = JSON.parse(output);
-
+      storyData = JSON.parse(cleanedOutput);
     } catch (parseError) {
-
       console.error(
-        "AI JSON parsing failed:",
-        output
+        "JSON parsing failed:",
+        cleanedOutput
       );
 
       return res.status(500).json({
         error: "The AI returned an invalid story format."
       });
-
     }
 
+    // --------------------------------------------------
+    // FINAL VALIDATION
+    // --------------------------------------------------
 
-    return res.status(200).json(storyData);
+    if (
+      !storyData.title ||
+      !Array.isArray(storyData.pages) ||
+      storyData.pages.length !== 10
+    ) {
+      return res.status(500).json({
+        error: "The AI returned an incomplete story."
+      });
+    }
 
+    // --------------------------------------------------
+    // RETURN STORY
+    // --------------------------------------------------
+
+    return res.status(200).json({
+      story: storyData
+    });
 
   } catch (error) {
-
-    console.error(error);
+    console.error(
+      "Story generation error:",
+      error
+    );
 
     return res.status(500).json({
       error: "Something went wrong while creating the story."
     });
-
   }
-
 }
