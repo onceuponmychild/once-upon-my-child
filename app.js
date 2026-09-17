@@ -25,23 +25,16 @@ initializeApp();
 });
 
 function initializeApp() {
-
 setupAdventureCards();
 setupNavigation();
 setupStorySettings();
 setupPhotoUpload();
 setupStoryActions();
-
 updateStep();
 renderPhotos();
 }
 
-/* ============================================================
-ADVENTURE CARDS
-============================================================ */
-
 function setupAdventureCards() {
-
 var container = document.getElementById("storyTypeChoices");
 
 if (!container) {
@@ -51,32 +44,28 @@ return;
 var cards = container.querySelectorAll(".choice-card");
 
 cards.forEach(function (card) {
+card.addEventListener("click", function () {
+cards.forEach(function (item) {
+item.classList.remove("selected");
+item.setAttribute("aria-selected", "false");
+});
 
 ```
-card.addEventListener("click", function () {
-
-  cards.forEach(function (otherCard) {
-    otherCard.classList.remove("selected");
-    otherCard.setAttribute("aria-selected", "false");
-  });
-
   card.classList.add("selected");
   card.setAttribute("aria-selected", "true");
 
-  state.story.type = card.getAttribute("data-value") || "Magical Adventure";
+  state.story.type =
+    card.getAttribute("data-value") ||
+    "Magical Adventure";
 
+  console.log("Adventure selected:", state.story.type);
 });
 ```
 
 });
 }
 
-/* ============================================================
-NAVIGATION
-============================================================ */
-
 function setupNavigation() {
-
 var continueButton =
 document.getElementById("continueToPhotos");
 
@@ -84,60 +73,41 @@ var backButton =
 document.getElementById("backToDetails");
 
 if (continueButton) {
+continueButton.addEventListener("click", function () {
+if (!collectChildDetails()) {
+return;
+}
 
 ```
-continueButton.addEventListener("click", function () {
-
-  if (!collectChildDetails()) {
-    return;
-  }
-
-  if (!collectStoryPreferences()) {
-    return;
-  }
-
+  collectStoryPreferences();
   goToStep(2);
-
 });
 ```
 
 }
 
 if (backButton) {
-
-```
 backButton.addEventListener("click", function () {
-  goToStep(1);
+goToStep(1);
 });
-```
-
 }
 }
 
 function goToStep(stepNumber) {
-
 state.currentStep = stepNumber;
-
 updateStep();
 
 window.scrollTo({
 top: 0,
 behavior: "smooth"
 });
-
 }
 
 function updateStep() {
-
-var screens =
-document.querySelectorAll(".screen");
+var screens = document.querySelectorAll(".screen");
 
 screens.forEach(function (screen) {
-
-```
 screen.classList.remove("active");
-```
-
 });
 
 var activeScreen =
@@ -152,32 +122,21 @@ document.getElementById("stepLabel");
 
 if (stepLabel) {
 stepLabel.textContent =
-"Step " + state.currentStep + " of 3";
+"Step " +
+state.currentStep +
+" of 3";
 }
 
 var progressBar =
 document.getElementById("progressBar");
 
 if (progressBar) {
-
-```
-var percentage =
-  (state.currentStep / 3) * 100;
-
 progressBar.style.width =
-  percentage + "%";
-```
-
+((state.currentStep / 3) * 100) + "%";
 }
-
 }
-
-/* ============================================================
-CHILD DETAILS
-============================================================ */
 
 function collectChildDetails() {
-
 var name =
 document.getElementById("childName");
 
@@ -203,12 +162,9 @@ state.child.favorites =
 favorites ? favorites.value.trim() : "";
 
 if (!state.child.name) {
+showMessage("Please enter the child's name.");
 
 ```
-showMessage(
-  "Please enter the child's name."
-);
-
 if (name) {
   name.focus();
 }
@@ -219,12 +175,9 @@ return false;
 }
 
 if (!state.child.age) {
+showMessage("Please choose the child's age.");
 
 ```
-showMessage(
-  "Please choose the child's age."
-);
-
 if (age) {
   age.focus();
 }
@@ -237,28 +190,12 @@ return false;
 return true;
 }
 
-/* ============================================================
-STORY PREFERENCES
-============================================================ */
-
 function collectStoryPreferences() {
-
 var setting =
 document.getElementById("setting");
 
 var lesson =
 document.getElementById("lesson");
-
-state.story.setting =
-setting ? setting.value.trim() : "";
-
-state.story.lesson =
-lesson ? lesson.value.trim() : "";
-
-return true;
-}
-
-function setupStorySettings() {
 
 var length =
 document.getElementById("storyLength");
@@ -266,40 +203,42 @@ document.getElementById("storyLength");
 var tone =
 document.getElementById("storyTone");
 
+state.story.setting =
+setting ? setting.value.trim() : "";
+
+state.story.lesson =
+lesson ? lesson.value.trim() : "";
+
 if (length) {
-
-```
-length.addEventListener("change", function () {
-
-  state.story.length =
-    length.value;
-
-});
-```
-
+state.story.length = length.value;
 }
 
 if (tone) {
+state.story.tone = tone.value;
+}
+}
 
-```
-tone.addEventListener("change", function () {
+function setupStorySettings() {
+var length =
+document.getElementById("storyLength");
 
-  state.story.tone =
-    tone.value;
+var tone =
+document.getElementById("storyTone");
 
+if (length) {
+length.addEventListener("change", function () {
+state.story.length = length.value;
 });
-```
-
 }
 
+if (tone) {
+tone.addEventListener("change", function () {
+state.story.tone = tone.value;
+});
 }
-
-/* ============================================================
-PHOTO UPLOAD
-============================================================ */
+}
 
 function setupPhotoUpload() {
-
 var input =
 document.getElementById("photoInput");
 
@@ -310,94 +249,69 @@ var addMemoryButton =
 document.getElementById("addMemoryBtn");
 
 if (input) {
+input.addEventListener("change", function (event) {
+if (
+event.target.files &&
+event.target.files.length
+) {
+addPhotos(event.target.files);
+}
 
 ```
-input.addEventListener("change", function (event) {
-
-  var files =
-    event.target.files;
-
-  if (files && files.length) {
-    addPhotos(files);
-  }
-
   input.value = "";
-
 });
 ```
 
 }
 
 if (dropZone) {
+dropZone.addEventListener("dragover", function (event) {
+event.preventDefault();
+dropZone.classList.add("dragging");
+});
 
 ```
-dropZone.addEventListener("dragover", function (event) {
-
-  event.preventDefault();
-
-  dropZone.classList.add("dragging");
-
-});
-
-
 dropZone.addEventListener("dragleave", function () {
-
   dropZone.classList.remove("dragging");
-
 });
-
 
 dropZone.addEventListener("drop", function (event) {
-
   event.preventDefault();
-
   dropZone.classList.remove("dragging");
 
-  var files =
-    event.dataTransfer.files;
-
-  if (files && files.length) {
-    addPhotos(files);
+  if (
+    event.dataTransfer.files &&
+    event.dataTransfer.files.length
+  ) {
+    addPhotos(event.dataTransfer.files);
   }
-
 });
 ```
 
 }
 
 if (addMemoryButton) {
-
-```
 addMemoryButton.addEventListener("click", function () {
-
-  if (input) {
-    input.click();
-  }
-
-});
-```
-
+if (input) {
+input.click();
 }
-
+});
+}
 }
 
 function addPhotos(fileList) {
-
-var files =
-Array.from(fileList);
+var files = Array.from(fileList);
 
 files.forEach(function (file) {
-
-```
-if (!file.type ||
-    file.type.indexOf("image/") !== 0) {
-
-  return;
+if (
+!file.type ||
+file.type.indexOf("image/") !== 0
+) {
+return;
 }
 
-
-var photo = {
-
+```
+state.photos.push({
   id:
     Date.now() +
     "-" +
@@ -406,100 +320,65 @@ var photo = {
       .substring(2, 9),
 
   file: file,
-
   name: file.name,
-
   url: URL.createObjectURL(file),
-
   memory: "",
-
   dataUrl: null
-
-};
-
-
-state.photos.push(photo);
+});
 ```
 
 });
 
 renderPhotos();
-
 }
 
-/* ============================================================
-IMAGE COMPRESSION
-============================================================ */
-
 function compressImage(file) {
-
 return new Promise(function (resolve, reject) {
+var reader = new FileReader();
 
 ```
-var reader =
-  new FileReader();
-
-
 reader.onload = function (event) {
-
-  var image =
-    new Image();
-
+  var image = new Image();
 
   image.onload = function () {
-
     var maxSize = 1600;
 
-    var width =
-      image.width;
+    var width = image.width;
+    var height = image.height;
 
-    var height =
-      image.height;
-
-
-    if (width > maxSize ||
-        height > maxSize) {
-
+    if (
+      width > maxSize ||
+      height > maxSize
+    ) {
       if (width > height) {
-
         height =
           Math.round(
             height *
-            (maxSize / width)
+            maxSize /
+            width
           );
 
-        width =
-          maxSize;
-
+        width = maxSize;
       } else {
-
         width =
           Math.round(
             width *
-            (maxSize / height)
+            maxSize /
+            height
           );
 
-        height =
-          maxSize;
-
+        height = maxSize;
       }
-
     }
-
 
     var canvas =
       document.createElement("canvas");
 
-    canvas.width =
-      width;
-
-    canvas.height =
-      height;
-
+    canvas.width = width;
+    canvas.height = height;
 
     var context =
       canvas.getContext("2d");
-
 
     context.drawImage(
       image,
@@ -509,44 +388,27 @@ reader.onload = function (event) {
       height
     );
 
-
     resolve(
       canvas.toDataURL(
         "image/jpeg",
         0.78
       )
     );
-
   };
 
-
-  image.onerror =
-    reject;
-
-
-  image.src =
-    event.target.result;
-
+  image.onerror = reject;
+  image.src = event.target.result;
 };
 
-
-reader.onerror =
-  reject;
-
+reader.onerror = reject;
 
 reader.readAsDataURL(file);
 ```
 
 });
-
 }
 
-/* ============================================================
-PHOTO RENDERING
-============================================================ */
-
 function renderPhotos() {
-
 var list =
 document.getElementById("photoList");
 
@@ -560,36 +422,21 @@ return;
 list.innerHTML = "";
 
 if (count) {
-
-```
-var photoWord =
-  state.photos.length === 1
-    ? "photo"
-    : "photos";
-
 count.textContent =
-  state.photos.length +
-  " " +
-  photoWord;
-```
-
+state.photos.length +
+(
+state.photos.length === 1
+? " photo"
+: " photos"
+);
 }
 
 state.photos.forEach(function (photo, index) {
+var item =
+document.createElement("div");
 
 ```
-var item =
-  document.createElement("div");
-
-item.className =
-  "photo-item";
-
-
-item.setAttribute(
-  "data-photo-id",
-  photo.id
-);
-
+item.className = "photo-item";
 
 item.innerHTML =
   '<div class="photo-preview">' +
@@ -619,7 +466,11 @@ item.innerHTML =
         'data-index="' +
         index +
         '"' +
-        (index === 0 ? " disabled" : "") +
+        (
+          index === 0
+            ? " disabled"
+            : ""
+        ) +
       '>↑</button>' +
 
       '<button type="button" ' +
@@ -627,7 +478,11 @@ item.innerHTML =
         'data-index="' +
         index +
         '"' +
-        (index === state.photos.length - 1 ? " disabled" : "") +
+        (
+          index === state.photos.length - 1
+            ? " disabled"
+            : ""
+        ) +
       '>↓</button>' +
 
       '<button type="button" ' +
@@ -640,111 +495,87 @@ item.innerHTML =
 
   '</div>';
 
-
 list.appendChild(item);
 ```
 
 });
 
 setupPhotoButtons();
-
 }
 
-/* ============================================================
-PHOTO BUTTONS + MEMORIES
-============================================================ */
-
 function setupPhotoButtons() {
-
 var memoryInputs =
 document.querySelectorAll(".memory-input");
 
 memoryInputs.forEach(function (input, index) {
-
-```
 input.addEventListener("input", function () {
-
-  if (state.photos[index]) {
-
-    state.photos[index].memory =
-      input.value;
-
-  }
-
+if (state.photos[index]) {
+state.photos[index].memory =
+input.value;
+}
 });
-```
-
 });
 
-var moveUpButtons =
+var upButtons =
 document.querySelectorAll(".move-up");
 
-moveUpButtons.forEach(function (button) {
+upButtons.forEach(function (button) {
+button.addEventListener("click", function () {
+var index =
+parseInt(
+button.getAttribute("data-index"),
+10
+);
 
 ```
-button.addEventListener("click", function () {
-
-  var index =
-    parseInt(
-      button.getAttribute("data-index"),
-      10
-    );
-
-
   if (index <= 0) {
     return;
   }
 
-
-  var temporary =
+  var temp =
     state.photos[index - 1];
 
   state.photos[index - 1] =
     state.photos[index];
 
   state.photos[index] =
-    temporary;
-
+    temp;
 
   renderPhotos();
-
 });
 ```
 
 });
 
-var moveDownButtons =
+var downButtons =
 document.querySelectorAll(".move-down");
 
-moveDownButtons.forEach(function (button) {
+downButtons.forEach(function (button) {
+button.addEventListener("click", function () {
+var index =
+parseInt(
+button.getAttribute("data-index"),
+10
+);
 
 ```
-button.addEventListener("click", function () {
-
-  var index =
-    parseInt(
-      button.getAttribute("data-index"),
-      10
-    );
-
-
-  if (index >= state.photos.length - 1) {
+  if (
+    index >=
+    state.photos.length - 1
+  ) {
     return;
   }
 
-
-  var temporary =
+  var temp =
     state.photos[index + 1];
 
   state.photos[index + 1] =
     state.photos[index];
 
   state.photos[index] =
-    temporary;
-
+    temp;
 
   renderPhotos();
-
 });
 ```
 
@@ -754,52 +585,30 @@ var deleteButtons =
 document.querySelectorAll(".delete-photo");
 
 deleteButtons.forEach(function (button) {
+button.addEventListener("click", function () {
+var index =
+parseInt(
+button.getAttribute("data-index"),
+10
+);
 
 ```
-button.addEventListener("click", function () {
-
-  var index =
-    parseInt(
-      button.getAttribute("data-index"),
-      10
-    );
-
-
   if (state.photos[index]) {
-
-    try {
-
-      URL.revokeObjectURL(
-        state.photos[index].url
-      );
-
-    } catch (error) {
-    }
-
+    URL.revokeObjectURL(
+      state.photos[index].url
+    );
   }
 
-
-  state.photos.splice(
-    index,
-    1
-  );
-
+  state.photos.splice(index, 1);
 
   renderPhotos();
-
 });
 ```
 
 });
-
 }
 
-/* ============================================================
-STORY ACTIONS
-============================================================ */
-
 function setupStoryActions() {
-
 var createButton =
 document.getElementById("createStoryBtn");
 
@@ -813,71 +622,40 @@ var printButton =
 document.getElementById("printStoryBtn");
 
 if (createButton) {
-
-```
 createButton.addEventListener("click", function () {
-
-  generateAIStory();
-
+generateAIStory();
 });
-```
-
 }
 
 if (editButton) {
-
-```
 editButton.addEventListener("click", function () {
-
-  goToStep(1);
-
+goToStep(1);
 });
-```
-
 }
 
 if (startOverButton) {
-
-```
 startOverButton.addEventListener("click", function () {
-
-  startOver();
-
+startOver();
 });
-```
-
 }
 
 if (printButton) {
-
-```
 printButton.addEventListener("click", function () {
-
-  window.print();
-
+window.print();
 });
-```
-
 }
-
 }
-
-/* ============================================================
-AI STORY GENERATION
-============================================================ */
 
 async function generateAIStory() {
-
 var createButton =
 document.getElementById("createStoryBtn");
 
 if (!state.photos.length) {
-
-```
 showMessage(
-  "Please add at least one photo before creating the story."
+"Please add at least one photo before creating the story."
 );
 
+```
 return;
 ```
 
@@ -886,28 +664,10 @@ return;
 collectChildDetails();
 collectStoryPreferences();
 
-var lengthSelect =
-document.getElementById("storyLength");
-
-var toneSelect =
-document.getElementById("storyTone");
-
-if (lengthSelect) {
-state.story.length =
-lengthSelect.value;
-}
-
-if (toneSelect) {
-state.story.tone =
-toneSelect.value;
-}
-
 if (createButton) {
+createButton.disabled = true;
 
 ```
-createButton.disabled =
-  true;
-
 createButton.innerHTML =
   "Creating their story... <span>✨</span>";
 ```
@@ -915,54 +675,36 @@ createButton.innerHTML =
 }
 
 try {
-
-```
 var memories = [];
 
-
+```
 for (
   var i = 0;
   i < state.photos.length;
   i++
 ) {
-
   var photo =
     state.photos[i];
 
-
   if (!photo.dataUrl) {
-
     photo.dataUrl =
       await compressImage(
         photo.file
       );
-
   }
 
-
   memories.push({
-
     index: i,
-
-    filename:
-      photo.name,
-
-    memory:
-      photo.memory || "",
-
-    image:
-      photo.dataUrl
-
+    filename: photo.name,
+    memory: photo.memory || "",
+    image: photo.dataUrl
   });
-
 }
-
 
 var response =
   await fetch(
     "/api/generate-story",
     {
-
       method: "POST",
 
       headers: {
@@ -972,63 +714,43 @@ var response =
 
       body:
         JSON.stringify({
-
-          child:
-            state.child,
-
-          story:
-            state.story,
-
-          memories:
-            memories
-
+          child: state.child,
+          story: state.story,
+          memories: memories
         })
-
     }
   );
-
 
 var result =
   await response.json();
 
-
 if (!response.ok) {
-
   throw new Error(
     result.error ||
     "The story could not be created."
   );
-
 }
 
-
 if (!result.story) {
-
   throw new Error(
     "The server returned an invalid response."
   );
-
 }
-
 
 state.generatedStory =
   result.story;
 
-
 renderGeneratedStory();
-
 goToStep(3);
 ```
 
 } catch (error) {
-
-```
 console.error(
-  "AI STORY ERROR:",
-  error
+"AI STORY ERROR:",
+error
 );
 
-
+```
 showMessage(
   error.message ||
   "We couldn't create the story yet."
@@ -1036,29 +758,19 @@ showMessage(
 ```
 
 } finally {
-
-```
 if (createButton) {
+createButton.disabled = false;
 
-  createButton.disabled =
-    false;
-
+```
   createButton.innerHTML =
-    "Create their story <span>✨</span>";
-
+    'Create their story <span>✨</span>';
 }
 ```
 
 }
-
 }
-
-/* ============================================================
-STORY RENDERING
-============================================================ */
 
 function renderGeneratedStory() {
-
 var story =
 state.generatedStory;
 
@@ -1106,8 +818,7 @@ state.child.name ||
 
 if (coverType) {
 coverType.textContent =
-state.story.type ||
-"A Magical Adventure";
+state.story.type;
 }
 
 if (ending) {
@@ -1115,16 +826,16 @@ ending.textContent =
 story.ending || "";
 }
 
-if (coverPhotoWrap &&
-state.photos.length > 0) {
-
-```
+if (
+coverPhotoWrap &&
+state.photos.length
+) {
 coverPhotoWrap.innerHTML =
-  '<img src="' +
-  escapeHtml(state.photos[0].url) +
-  '" alt="Story cover photo">';
-```
-
+'<img src="' +
+   escapeHtml(
+     state.photos[0].url
+   ) +
+   '" alt="Story cover photo">';
 }
 
 if (!pages) {
@@ -1138,85 +849,79 @@ Array.isArray(story.pages)
 ? story.pages
 : [];
 
-storyPages.forEach(function (page, index) {
+storyPages.forEach(
+function (page, index) {
 
 ```
-var photoIndex =
-  Number.isInteger(page.photoIndex)
-    ? page.photoIndex
-    : index % state.photos.length;
+  var photoIndex =
+    Number.isInteger(
+      page.photoIndex
+    )
+      ? page.photoIndex
+      : index %
+        state.photos.length;
 
+  var photo =
+    state.photos[
+      photoIndex
+    ];
 
-var photo =
-  state.photos[photoIndex];
+  var article =
+    document.createElement(
+      "article"
+    );
 
+  article.className =
+    "story-page";
 
-var article =
-  document.createElement("article");
+  var imageHtml =
+    "";
 
+  if (photo) {
+    imageHtml =
+      '<div class="story-photo-wrap">' +
+        '<img src="' +
+        escapeHtml(
+          photo.url
+        ) +
+        '" alt="Story memory">' +
+      '</div>';
+  }
 
-article.className =
-  "story-page";
+  article.innerHTML =
+    imageHtml +
 
+    '<div class="story-page-content">' +
 
-var imageHtml = "";
+      '<div class="story-page-number">' +
+        "Chapter " +
+        (index + 1) +
+      '</div>' +
 
+      '<h2>' +
+        escapeHtml(
+          page.heading || ""
+        ) +
+      '</h2>' +
 
-if (photo) {
+      '<p>' +
+        escapeHtml(
+          page.text || ""
+        ) +
+      '</p>' +
 
-  imageHtml =
-    '<div class="story-photo-wrap">' +
-      '<img src="' +
-      escapeHtml(photo.url) +
-      '" alt="Story memory ' +
-      (photoIndex + 1) +
-      '">' +
     '</div>';
 
+  pages.appendChild(
+    article
+  );
 }
-
-
-article.innerHTML =
-
-  imageHtml +
-
-  '<div class="story-page-content">' +
-
-    '<div class="story-page-number">' +
-      "Chapter " +
-      (index + 1) +
-    '</div>' +
-
-    '<h2>' +
-      escapeHtml(
-        page.heading ||
-        ""
-      ) +
-    '</h2>' +
-
-    '<p>' +
-      escapeHtml(
-        page.text ||
-        ""
-      ) +
-    '</p>' +
-
-  '</div>';
-
-
-pages.appendChild(article);
 ```
 
-});
-
+);
 }
 
-/* ============================================================
-START OVER
-============================================================ */
-
 function startOver() {
-
 state.currentStep = 1;
 
 state.child = {
@@ -1234,23 +939,18 @@ length: "medium",
 tone: "warm"
 };
 
-state.photos.forEach(function (photo) {
-
-```
+state.photos.forEach(
+function (photo) {
 try {
-
-  URL.revokeObjectURL(
-    photo.url
-  );
-
+URL.revokeObjectURL(
+photo.url
+);
 } catch (error) {
 }
-```
-
-});
+}
+);
 
 state.photos = [];
-
 state.generatedStory = null;
 
 var fields = [
@@ -1262,36 +962,36 @@ var fields = [
 "lesson"
 ];
 
-fields.forEach(function (id) {
-
-```
+fields.forEach(
+function (id) {
 var element =
-  document.getElementById(id);
+document.getElementById(id);
 
-if (element) {
-
-  element.value =
-    "";
-
+```
+  if (element) {
+    element.value = "";
+  }
 }
 ```
 
-});
+);
 
-var storyLength =
-document.getElementById("storyLength");
+var length =
+document.getElementById(
+"storyLength"
+);
 
-if (storyLength) {
-storyLength.value =
-"medium";
+if (length) {
+length.value = "medium";
 }
 
-var storyTone =
-document.getElementById("storyTone");
+var tone =
+document.getElementById(
+"storyTone"
+);
 
-if (storyTone) {
-storyTone.value =
-"warm";
+if (tone) {
+tone.value = "warm";
 }
 
 var cards =
@@ -1299,28 +999,28 @@ document.querySelectorAll(
 "#storyTypeChoices .choice-card"
 );
 
-cards.forEach(function (card) {
-
-```
+cards.forEach(
+function (card) {
 card.classList.remove(
-  "selected"
+"selected"
 );
 
-card.setAttribute(
-  "aria-selected",
-  "false"
+```
+  card.setAttribute(
+    "aria-selected",
+    "false"
+  );
+}
+```
+
 );
-```
 
-});
-
-if (cards.length > 0) {
-
-```
+if (cards.length) {
 cards[0].classList.add(
-  "selected"
+"selected"
 );
 
+```
 cards[0].setAttribute(
   "aria-selected",
   "true"
@@ -1330,17 +1030,10 @@ cards[0].setAttribute(
 }
 
 renderPhotos();
-
 updateStep();
-
 }
 
-/* ============================================================
-MESSAGE
-============================================================ */
-
 function showMessage(message) {
-
 var existing =
 document.querySelector(
 ".app-message"
@@ -1351,7 +1044,9 @@ existing.remove();
 }
 
 var box =
-document.createElement("div");
+document.createElement(
+"div"
+);
 
 box.className =
 "app-message";
@@ -1404,24 +1099,17 @@ showMessage.timeout
 );
 
 showMessage.timeout =
-setTimeout(function () {
-
-```
-  if (box) {
-    box.remove();
-  }
-
-}, 4000);
-```
-
+setTimeout(
+function () {
+if (box) {
+box.remove();
+}
+},
+4000
+);
 }
 
-/* ============================================================
-HTML SAFETY
-============================================================ */
-
 function escapeHtml(value) {
-
 var text =
 value == null
 ? ""
