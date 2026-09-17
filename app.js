@@ -1,398 +1,1004 @@
-module.exports = async function handler(req, res) {
-if (req.method !== "POST") {
-return res.status(405).json({
-error: "Method not allowed"
-});
-}
+const state = {
+currentStep: 1,
+child: {
+name: "",
+age: "",
+personality: "",
+favorites: ""
+},
+story: {
+type: "",
+setting: "",
+lesson: "",
+length: "Medium",
+tone: "Warm and magical"
+},
+photos: [],
+generatedStory: null
+};
 
-try {
-const apiKey = process.env.OPENAI_API_KEY;
+// --------------------------------------------------
+// INITIALIZE
+// --------------------------------------------------
 
-if (!apiKey) {
-  return res.status(500).json({
-    error: "OPENAI_API_KEY is not configured."
-  });
-}
-
-const { child, story, memories } = req.body || {};
-
-if (!child || !child.name) {
-  return res.status(400).json({
-    error: "Child information is required."
-  });
-}
-
-if (!Array.isArray(memories) || memories.length === 0) {
-  return res.status(400).json({
-    error: "At least one photo is required."
-  });
-}
-
-const usableMemories = memories
-  .map((memory, originalIndex) => ({
-    ...memory,
-    originalIndex
-  }))
-  .filter(
-    (memory) =>
-      memory &&
-      typeof memory.image === "string" &&
-      memory.image.startsWith("data:image/")
-  );
-
-if (usableMemories.length === 0) {
-  return res.status(400).json({
-    error: "No usable photos were received."
-  });
-}
-
-const storyType = story?.type || "Magical Adventure";
-const setting = story?.setting || "A magical world";
-const lesson =
-  story?.lesson || "Being brave and believing in yourself";
-const length = story?.length || "Medium";
-const tone = story?.tone || "Warm and magical";
-
-const maxPages =
-  length === "Short"
-    ? 5
-    : length === "Long"
-    ? 10
-    : 8;
-
-const selectedMemories = usableMemories.slice(0, maxPages);
-const pageCount = selectedMemories.length;
-
-const photoInputs = [];
-
-selectedMemories.forEach((memory, index) => {
-  const memoryText =
-    typeof memory.memory === "string" && memory.memory.trim()
-      ? memory.memory.trim()
-      : "No parent-written memory was provided for this photo.";
-
-  const filename =
-    typeof memory.name === "string" && memory.name.trim()
-      ? memory.name.trim()
-      : `Photo ${index + 1}`;
-
-  photoInputs.push({
-    type: "input_text",
-    text:
-      `PHOTO ${index + 1}\n` +
-      `Filename: ${filename}\n` +
-      `Parent memory: ${memoryText}\n\n` +
-      `This image and the parent memory above belong together. ` +
-      `Study the actual visible content of the photo and use it when ` +
-      `writing the corresponding story section.`
-  });
-
-  photoInputs.push({
-    type: "input_image",
-    image_url: memory.image,
-    detail: "high"
-  });
+document.addEventListener("DOMContentLoaded", () => {
+initializeApp();
 });
 
-const systemPrompt = `
-
-You are the AI Story Engine for "Once Upon My Child", a premium personalized children's storybook creator.
-
-Transform the child's real photos, the parent's memories, and the selected story preferences into one coherent children's story.
-
-The child must remain the main character.
-
-Study every supplied photo carefully. Use visible details such as clothing, toys, animals, objects, scenery, activities, colors, weather and surroundings when appropriate.
-
-Parent-written memories are the strongest source of factual information. Do not contradict them.
-
-Do not invent specific real-world family facts, names, relationships, locations, dates or events unless supplied by the parent or clearly visible in the photo.
-
-Imagination is encouraged. Real objects, places and moments can become magical elements within the fictional story.
-
-Use the supplied photos in their original order whenever possible.
-
-Each story page MUST use a different photo.
-
-Never use the same photoIndex twice.
-
-The story should have a clear beginning, middle and satisfying ending.
-
-Respect the child's:
-
-name
-age
-personality
-favorite things
-
-when provided.
-
-Respect the selected:
-
-story type
-setting
-lesson
-length
-tone
-
-Use language appropriate for the child's age.
-
-Write like a professionally produced personalized children's picture book:
-
-vivid but simple language
-short readable paragraphs
-emotional warmth
-gentle humor
-magical imagery
-strong narrative voice
-
-Avoid repetitive sentences, generic filler and overly complicated vocabulary.
-
-The ending should provide emotional closure and naturally reinforce the selected lesson.
-
-RETURN ONLY VALID JSON.
-
-Do not include Markdown.
-Do not include code fences.
-Do not include commentary.
-
-Use exactly this structure:
-
-{
-"title": "Story title",
-"subtitle": "Short subtitle",
-"dedication": "A short personalized dedication",
-"pages": [
-{
-"photoIndex": 0,
-"heading": "Page heading",
-"text": "Story text"
-}
-],
-"ending": "Final emotional ending"
+function initializeApp() {
+setupChoiceCards();
+setupButtons();
+setupPhotoUpload();
+setupPhotoDropZone();
+updateStepUI();
 }
 
-There must be exactly ${pageCount} pages.
+// --------------------------------------------------
+// CHOICE CARDS
+// --------------------------------------------------
 
-The photoIndex values must be:
-${selectedMemories.map((_, i) => i).join(", ")}
+function setupChoiceCards() {
+const choiceGroups = document.querySelectorAll("[data-choice]");
 
-Each photoIndex must appear ONLY ONCE.
+choiceGroups.forEach((group) => {
+const cards = group.querySelectorAll(".choice-card");
 
-Use the photos in order.
-
-Do not add any additional fields.
-`;
-
-const childDetails = `
-
-CHILD INFORMATION
-
-Name: ${child.name}
-Age: ${child.age || "Not provided"}
-Personality: ${child.personality || "Not provided"}
-Favorite things: ${child.favorites || "Not provided"}
-
-STORY PREFERENCES
-
-Story type: ${storyType}
-Setting: ${setting}
-Lesson: ${lesson}
-Length: ${length}
-Tone: ${tone}
-
-The story contains ${pageCount} real photo(s).
-
-Create one connected story using these photos in order.
-`;
-
-console.log("GENERATE STORY: preparing OpenAI request");
-console.log("GENERATE STORY: photo count =", pageCount);
-
-const response = await fetch(
-  "https://api.openai.com/v1/responses",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: "gpt-5.6-luna",
-      input: [
-        {
-          role: "system",
-          content: [
-            {
-              type: "input_text",
-              text: systemPrompt
-            }
-          ]
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: childDetails
-            },
-            ...photoInputs
-          ]
-        }
-      ],
-      max_output_tokens: 7000
-    })
-  }
-);
-
-console.log(
-  "GENERATE STORY: OpenAI response status =",
-  response.status
-);
-
-const responseText = await response.text();
-
-if (!response.ok) {
-  console.error("OPENAI API ERROR:", responseText);
-
-  return res.status(500).json({
-    error: "OpenAI API request failed.",
-    details: responseText
-  });
-}
-
-let result;
-
-try {
-  result = JSON.parse(responseText);
-} catch (parseError) {
-  console.error("OPENAI RESPONSE PARSE ERROR:", parseError);
-
-  return res.status(500).json({
-    error: "Unable to parse OpenAI response."
-  });
-}
-
-let outputText = "";
-
-if (typeof result.output_text === "string") {
-  outputText = result.output_text;
-} else if (Array.isArray(result.output)) {
-  for (const outputItem of result.output) {
-    if (!Array.isArray(outputItem.content)) {
-      continue;
-    }
-
-    for (const contentItem of outputItem.content) {
-      if (
-        contentItem &&
-        contentItem.type === "output_text" &&
-        typeof contentItem.text === "string"
-      ) {
-        outputText += contentItem.text;
-      }
-    }
-  }
-}
-
-if (!outputText.trim()) {
-  console.error("NO OUTPUT TEXT FROM OPENAI:", result);
-
-  return res.status(500).json({
-    error: "OpenAI returned no story text."
-  });
-}
-
-outputText = outputText
-  .replace(/^```json\s*/i, "")
-  .replace(/^```\s*/i, "")
-  .replace(/\s*```$/i, "")
-  .trim();
-
-let storyResult;
-
-try {
-  storyResult = JSON.parse(outputText);
-} catch (parseError) {
-  console.error("STORY JSON PARSE ERROR:", parseError);
-  console.error("MODEL OUTPUT:", outputText);
-
-  return res.status(500).json({
-    error: "The AI returned an invalid story format."
-  });
-}
-
-if (
-  !storyResult ||
-  typeof storyResult !== "object" ||
-  !Array.isArray(storyResult.pages)
-) {
-  return res.status(500).json({
-    error: "The AI returned an invalid story structure."
-  });
-}
-
-storyResult.pages = storyResult.pages.slice(0, pageCount);
-
-const usedPhotoIndexes = new Set();
-
-storyResult.pages = storyResult.pages.filter((page) => {
-  if (!page || typeof page !== "object") {
-    return false;
-  }
-
-  const index = Number(page.photoIndex);
-
-  if (!Number.isInteger(index)) {
-    return false;
-  }
-
-  if (index < 0 || index >= selectedMemories.length) {
-    return false;
-  }
-
-  if (usedPhotoIndexes.has(index)) {
-    return false;
-  }
-
-  usedPhotoIndexes.add(index);
-  page.photoIndex = index;
-
-  return true;
-});
-
-for (let i = 0; i < selectedMemories.length; i++) {
-  if (storyResult.pages.length >= pageCount) {
-    break;
-  }
-
-  if (!usedPhotoIndexes.has(i)) {
-    storyResult.pages.push({
-      photoIndex: i,
-      heading: "A Special Moment",
-      text:
-        `This special moment became part of ${child.name}'s wonderful ` +
-        `adventure. It was a memory worth keeping forever.`
+```
+cards.forEach((card) => {
+  card.addEventListener("click", () => {
+    cards.forEach((item) => {
+      item.classList.remove("selected");
+      item.setAttribute("aria-selected", "false");
     });
 
-    usedPhotoIndexes.add(i);
-  }
+    card.classList.add("selected");
+    card.setAttribute("aria-selected", "true");
+
+    const choiceType = group.dataset.choice;
+    const value =
+      card.dataset.value ||
+      card.dataset.choiceValue ||
+      card.getAttribute("data-option") ||
+      card.textContent.trim();
+
+    saveChoice(choiceType, value);
+  });
+});
+```
+
+});
 }
 
-return res.status(200).json({
-  story: storyResult
+function saveChoice(type, value) {
+switch (type) {
+case "story-type":
+state.story.type = value;
+break;
+
+```
+case "setting":
+  state.story.setting = value;
+  break;
+
+case "lesson":
+  state.story.lesson = value;
+  break;
+
+case "length":
+  state.story.length = value;
+  break;
+
+case "tone":
+  state.story.tone = value;
+  break;
+```
+
+}
+}
+
+// --------------------------------------------------
+// BUTTONS
+// --------------------------------------------------
+
+function setupButtons() {
+document.querySelectorAll("[data-next]").forEach((button) => {
+button.addEventListener("click", handleNext);
 });
+
+document.querySelectorAll("[data-back]").forEach((button) => {
+button.addEventListener("click", handleBack);
+});
+
+const generateButton =
+document.getElementById("generateStory") ||
+document.getElementById("generateStoryBtn") ||
+document.querySelector("[data-generate-story]");
+
+if (generateButton) {
+generateButton.addEventListener("click", generateAIStory);
+}
+}
+
+// --------------------------------------------------
+// NEXT
+// --------------------------------------------------
+
+function handleNext(event) {
+event.preventDefault();
+
+if (!validateCurrentStep()) {
+return;
+}
+
+if (state.currentStep < getTotalSteps()) {
+state.currentStep += 1;
+updateStepUI();
+}
+}
+
+// --------------------------------------------------
+// BACK
+// --------------------------------------------------
+
+function handleBack(event) {
+event.preventDefault();
+
+if (state.currentStep > 1) {
+state.currentStep -= 1;
+updateStepUI();
+}
+}
+
+// --------------------------------------------------
+// STEP VALIDATION
+// --------------------------------------------------
+
+function validateCurrentStep() {
+if (state.currentStep === 1) {
+return collectChildDetails();
+}
+
+if (state.currentStep === 2) {
+return validateStoryPreferences();
+}
+
+if (state.currentStep === 3) {
+return validatePhotos();
+}
+
+return true;
+}
+
+function collectChildDetails() {
+const nameInput =
+document.getElementById("childName") ||
+document.querySelector('[name="childName"]') ||
+document.querySelector('[name="name"]');
+
+const ageInput =
+document.getElementById("childAge") ||
+document.querySelector('[name="childAge"]') ||
+document.querySelector('[name="age"]');
+
+const personalityInput =
+document.getElementById("childPersonality") ||
+document.querySelector('[name="childPersonality"]') ||
+document.querySelector('[name="personality"]');
+
+const favoritesInput =
+document.getElementById("childFavorites") ||
+document.querySelector('[name="childFavorites"]') ||
+document.querySelector('[name="favorites"]');
+
+state.child.name = nameInput ? nameInput.value.trim() : "";
+state.child.age = ageInput ? ageInput.value.trim() : "";
+state.child.personality = personalityInput
+? personalityInput.value.trim()
+: "";
+state.child.favorites = favoritesInput
+? favoritesInput.value.trim()
+: "";
+
+if (!state.child.name) {
+showMessage("Please enter your child's name.", "error");
+
+```
+if (nameInput) {
+  nameInput.focus();
+}
+
+return false;
+```
+
+}
+
+return true;
+}
+
+function validateStoryPreferences() {
+const storyTypeSelected =
+state.story.type ||
+document.querySelector(
+'[data-choice="story-type"] .choice-card.selected'
+);
+
+const settingSelected =
+state.story.setting ||
+document.querySelector(
+'[data-choice="setting"] .choice-card.selected'
+);
+
+const lessonSelected =
+state.story.lesson ||
+document.querySelector(
+'[data-choice="lesson"] .choice-card.selected'
+);
+
+if (!storyTypeSelected) {
+showMessage("Please choose an adventure.", "error");
+return false;
+}
+
+if (!settingSelected) {
+showMessage("Please choose a setting.", "error");
+return false;
+}
+
+if (!lessonSelected) {
+showMessage("Please choose a lesson.", "error");
+return false;
+}
+
+return true;
+}
+
+function validatePhotos() {
+if (state.photos.length === 0) {
+showMessage("Please add at least one photo.", "error");
+return false;
+}
+
+return true;
+}
+
+// --------------------------------------------------
+// STEP UI
+// --------------------------------------------------
+
+function getTotalSteps() {
+const steps = document.querySelectorAll(".step");
+
+return steps.length || 3;
+}
+
+function updateStepUI() {
+const steps = document.querySelectorAll(".step");
+
+steps.forEach((step, index) => {
+const stepNumber = index + 1;
+
+```
+step.classList.toggle(
+  "active",
+  stepNumber === state.currentStep
+);
+```
+
+});
+
+const progress =
+document.getElementById("progressBar") ||
+document.querySelector(".progress-fill") ||
+document.querySelector(".progress-bar-fill");
+
+if (progress) {
+const total = getTotalSteps();
+
+```
+const percentage =
+  total <= 1
+    ? 100
+    : ((state.currentStep - 1) / (total - 1)) * 100;
+
+progress.style.width = `${percentage}%`;
+```
+
+}
+
+const stepLabel =
+document.getElementById("stepLabel") ||
+document.querySelector(".step-label");
+
+if (stepLabel) {
+stepLabel.textContent =
+`Step ${state.currentStep} of ${getTotalSteps()}`;
+}
+
+const backButtons = document.querySelectorAll("[data-back]");
+
+backButtons.forEach((button) => {
+button.style.display =
+state.currentStep === 1 ? "none" : "";
+});
+
+const nextButtons = document.querySelectorAll("[data-next]");
+
+nextButtons.forEach((button) => {
+button.style.display =
+state.currentStep === getTotalSteps()
+? "none"
+: "";
+});
+}
+
+// --------------------------------------------------
+// PHOTO UPLOAD
+// --------------------------------------------------
+
+function setupPhotoUpload() {
+const input =
+document.getElementById("photoUpload") ||
+document.getElementById("photoInput") ||
+document.querySelector('input[type="file"]');
+
+if (!input) {
+return;
+}
+
+input.addEventListener("change", (event) => {
+const files = Array.from(event.target.files || []);
+
+```
+if (files.length > 0) {
+  addPhotos(files);
+}
+
+input.value = "";
+```
+
+});
+}
+
+function setupPhotoDropZone() {
+const dropZone =
+document.getElementById("photoDropZone") ||
+document.querySelector(".photo-drop-zone") ||
+document.querySelector(".upload-zone");
+
+if (!dropZone) {
+return;
+}
+
+dropZone.addEventListener("dragover", (event) => {
+event.preventDefault();
+dropZone.classList.add("dragging");
+});
+
+dropZone.addEventListener("dragleave", () => {
+dropZone.classList.remove("dragging");
+});
+
+dropZone.addEventListener("drop", (event) => {
+event.preventDefault();
+
+```
+dropZone.classList.remove("dragging");
+
+const files = Array.from(
+  event.dataTransfer.files || []
+).filter((file) => file.type.startsWith("image/"));
+
+if (files.length > 0) {
+  addPhotos(files);
+}
+```
+
+});
+}
+
+// --------------------------------------------------
+// ADD PHOTOS
+// --------------------------------------------------
+
+async function addPhotos(files) {
+const imageFiles = files.filter((file) =>
+file.type.startsWith("image/")
+);
+
+if (imageFiles.length === 0) {
+showMessage("Please select image files.", "error");
+return;
+}
+
+for (const file of imageFiles) {
+try {
+const compressedImage = await compressImage(file);
+
+```
+  state.photos.push({
+    image: compressedImage,
+    name: file.name,
+    memory: ""
+  });
+} catch (error) {
+  console.error("PHOTO PROCESSING ERROR:", error);
+}
+```
+
+}
+
+renderPhotos();
+}
+
+// --------------------------------------------------
+// IMAGE COMPRESSION
+// --------------------------------------------------
+
+function compressImage(file) {
+return new Promise((resolve, reject) => {
+const reader = new FileReader();
+
+```
+reader.onload = () => {
+  const image = new Image();
+
+  image.onload = () => {
+    const maxSize = 1600;
+
+    let width = image.width;
+    let height = image.height;
+
+    if (width > maxSize || height > maxSize) {
+      if (width > height) {
+        height = Math.round(
+          (height / width) * maxSize
+        );
+        width = maxSize;
+      } else {
+        width = Math.round(
+          (width / height) * maxSize
+        );
+        height = maxSize;
+      }
+    }
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+
+    context.drawImage(
+      image,
+      0,
+      0,
+      width,
+      height
+    );
+
+    resolve(
+      canvas.toDataURL("image/jpeg", 0.78)
+    );
+  };
+
+  image.onerror = () => {
+    reject(new Error("Unable to load image."));
+  };
+
+  image.src = reader.result;
+};
+
+reader.onerror = () => {
+  reject(new Error("Unable to read image."));
+};
+
+reader.readAsDataURL(file);
+```
+
+});
+}
+
+// --------------------------------------------------
+// RENDER PHOTOS
+// --------------------------------------------------
+
+function renderPhotos() {
+const container =
+document.getElementById("photoPreview") ||
+document.getElementById("photoGrid") ||
+document.getElementById("uploadedPhotos") ||
+document.querySelector(".photo-preview");
+
+if (!container) {
+return;
+}
+
+container.innerHTML = "";
+
+state.photos.forEach((photo, index) => {
+const card = document.createElement("div");
+
+```
+card.className = "photo-card";
+
+card.innerHTML = `
+  <div class="photo-card-image">
+    <img
+      src="${photo.image}"
+      alt="Uploaded photo ${index + 1}"
+    />
+    <div class="photo-number">
+      ${index + 1}
+    </div>
+  </div>
+
+  <div class="photo-card-content">
+    <label>
+      What do you remember about this moment?
+    </label>
+
+    <textarea
+      class="photo-memory"
+      data-index="${index}"
+      placeholder="Example: Emma was so excited when she saw the ocean for the first time..."
+    >${escapeHtml(photo.memory)}</textarea>
+
+    <div class="photo-actions">
+      <button
+        type="button"
+        class="photo-action"
+        data-move-up="${index}"
+        ${index === 0 ? "disabled" : ""}
+      >
+        ↑
+      </button>
+
+      <button
+        type="button"
+        class="photo-action"
+        data-move-down="${index}"
+        ${index === state.photos.length - 1 ? "disabled" : ""}
+      >
+        ↓
+      </button>
+
+      <button
+        type="button"
+        class="photo-action delete"
+        data-delete-photo="${index}"
+      >
+        Remove
+      </button>
+    </div>
+  </div>
+`;
+
+container.appendChild(card);
+```
+
+});
+
+container
+.querySelectorAll(".photo-memory")
+.forEach((textarea) => {
+textarea.addEventListener("input", () => {
+const index = Number(textarea.dataset.index);
+
+```
+    if (state.photos[index]) {
+      state.photos[index].memory =
+        textarea.value;
+    }
+  });
+});
+```
+
+container
+.querySelectorAll("[data-move-up]")
+.forEach((button) => {
+button.addEventListener("click", () => {
+movePhoto(
+Number(button.dataset.moveUp),
+-1
+);
+});
+});
+
+container
+.querySelectorAll("[data-move-down]")
+.forEach((button) => {
+button.addEventListener("click", () => {
+movePhoto(
+Number(button.dataset.moveDown),
+1
+);
+});
+});
+
+container
+.querySelectorAll("[data-delete-photo]")
+.forEach((button) => {
+button.addEventListener("click", () => {
+deletePhoto(
+Number(button.dataset.deletePhoto)
+);
+});
+});
+
+updatePhotoCount();
+}
+
+// --------------------------------------------------
+// PHOTO MANAGEMENT
+// --------------------------------------------------
+
+function movePhoto(index, direction) {
+const newIndex = index + direction;
+
+if (
+index < 0 ||
+index >= state.photos.length ||
+newIndex < 0 ||
+newIndex >= state.photos.length
+) {
+return;
+}
+
+const temporary = state.photos[index];
+
+state.photos[index] = state.photos[newIndex];
+state.photos[newIndex] = temporary;
+
+renderPhotos();
+}
+
+function deletePhoto(index) {
+if (
+index < 0 ||
+index >= state.photos.length
+) {
+return;
+}
+
+state.photos.splice(index, 1);
+
+renderPhotos();
+}
+
+function updatePhotoCount() {
+const counters =
+document.querySelectorAll("[data-photo-count]");
+
+counters.forEach((counter) => {
+counter.textContent = state.photos.length;
+});
+}
+
+// --------------------------------------------------
+// GENERATE AI STORY
+// --------------------------------------------------
+
+async function generateAIStory(event) {
+if (event) {
+event.preventDefault();
+}
+
+collectChildDetails();
+
+if (!validateStoryPreferences()) {
+return;
+}
+
+if (!validatePhotos()) {
+return;
+}
+
+const generateButton =
+document.getElementById("generateStory") ||
+document.getElementById("generateStoryBtn") ||
+document.querySelector("[data-generate-story]");
+
+if (generateButton) {
+generateButton.disabled = true;
+generateButton.dataset.originalText =
+generateButton.textContent;
+
+```
+generateButton.textContent =
+  "Creating Your Story...";
+```
+
+}
+
+showMessage(
+"Your story is being created. The AI is studying the photos and memories...",
+"loading"
+);
+
+try {
+const response = await fetch(
+"/api/generate-story",
+{
+method: "POST",
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+child: state.child,
+story: state.story,
+memories: state.photos
+})
+}
+);
+
+```
+const data = await response.json();
+
+if (!response.ok) {
+  throw new Error(
+    data.error ||
+    "The story could not be generated."
+  );
+}
+
+if (!data.story) {
+  throw new Error(
+    "The server returned an invalid story."
+  );
+}
+
+state.generatedStory = data.story;
+
+renderGeneratedStory();
+
+const totalSteps = getTotalSteps();
+
+if (state.currentStep < totalSteps) {
+  state.currentStep = totalSteps;
+  updateStepUI();
+}
+
+hideMessage();
+```
 
 } catch (error) {
-console.error("GENERATE STORY ERROR:", error);
+console.error(
+"AI STORY ERROR:",
+error
+);
 
-return res.status(500).json({
-  error: "Unable to generate story.",
-  details:
-    error && error.message
-      ? error.message
-      : String(error)
-});
+```
+showMessage(
+  error.message ||
+  "We couldn't create the story yet.",
+  "error"
+);
+```
+
+} finally {
+if (generateButton) {
+generateButton.disabled = false;
+
+```
+  generateButton.textContent =
+    generateButton.dataset.originalText ||
+    "Generate My Story";
+}
+```
 
 }
-};
+}
+
+// --------------------------------------------------
+// STORY RENDERING
+// --------------------------------------------------
+
+function renderGeneratedStory() {
+const story = state.generatedStory;
+
+if (!story) {
+return;
+}
+
+const container =
+document.getElementById("storyResult") ||
+document.getElementById("generatedStory") ||
+document.querySelector(".story-result");
+
+if (!container) {
+console.log(
+"Generated story:",
+story
+);
+return;
+}
+
+container.innerHTML = "";
+
+const title = document.createElement("h1");
+title.textContent =
+story.title || "Once Upon My Child";
+
+container.appendChild(title);
+
+if (story.subtitle) {
+const subtitle =
+document.createElement("p");
+
+```
+subtitle.className =
+  "story-subtitle";
+
+subtitle.textContent =
+  story.subtitle;
+
+container.appendChild(subtitle);
+```
+
+}
+
+if (story.dedication) {
+const dedication =
+document.createElement("p");
+
+```
+dedication.className =
+  "story-dedication";
+
+dedication.textContent =
+  story.dedication;
+
+container.appendChild(dedication);
+```
+
+}
+
+const pages =
+Array.isArray(story.pages)
+? story.pages
+: [];
+
+pages.forEach((page, index) => {
+const pageElement =
+document.createElement("article");
+
+```
+pageElement.className =
+  "story-page";
+
+const photoIndex =
+  Number(page.photoIndex);
+
+const photo =
+  state.photos[photoIndex];
+
+if (photo) {
+  const image =
+    document.createElement("img");
+
+  image.src = photo.image;
+
+  image.alt =
+    `Story page ${index + 1}`;
+
+  image.className =
+    "story-page-image";
+
+  pageElement.appendChild(image);
+}
+
+if (page.heading) {
+  const heading =
+    document.createElement("h2");
+
+  heading.textContent =
+    page.heading;
+
+  pageElement.appendChild(heading);
+}
+
+if (page.text) {
+  const text =
+    document.createElement("p");
+
+  text.textContent =
+    page.text;
+
+  pageElement.appendChild(text);
+}
+
+container.appendChild(pageElement);
+```
+
+});
+
+if (story.ending) {
+const ending =
+document.createElement("div");
+
+```
+ending.className =
+  "story-ending";
+
+const endingHeading =
+  document.createElement("h2");
+
+endingHeading.textContent =
+  "The End";
+
+const endingText =
+  document.createElement("p");
+
+endingText.textContent =
+  story.ending;
+
+ending.appendChild(
+  endingHeading
+);
+
+ending.appendChild(
+  endingText
+);
+
+container.appendChild(ending);
+```
+
+}
+}
+
+// --------------------------------------------------
+// MESSAGES
+// --------------------------------------------------
+
+function showMessage(message, type = "info") {
+let messageElement =
+document.getElementById("appMessage");
+
+if (!messageElement) {
+messageElement =
+document.createElement("div");
+
+```
+messageElement.id =
+  "appMessage";
+
+document.body.prepend(
+  messageElement
+);
+```
+
+}
+
+messageElement.textContent =
+message;
+
+messageElement.className =
+`app-message ${type}`;
+
+messageElement.style.display =
+"block";
+}
+
+function hideMessage() {
+const messageElement =
+document.getElementById("appMessage");
+
+if (messageElement) {
+messageElement.style.display =
+"none";
+}
+}
+
+// --------------------------------------------------
+// UTILITY
+// --------------------------------------------------
+
+function escapeHtml(value) {
+return String(value || "")
+.replace(/&/g, "&")
+.replace(/</g, "<")
+.replace(/>/g, ">")
+.replace(/"/g, """)
+.replace(/'/g, "'");
+}
