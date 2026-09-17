@@ -1,8 +1,9 @@
+```javascript
 export default async function handler(req, res) {
 
-  // ===============================
+  // ============================================================
   // METHOD CHECK
-  // ===============================
+  // ============================================================
 
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -13,9 +14,9 @@ export default async function handler(req, res) {
 
   try {
 
-    // ===============================
-    // CHECK API KEY
-    // ===============================
+    // ============================================================
+    // API KEY
+    // ============================================================
 
     const apiKey = process.env.OPENAI_API_KEY;
 
@@ -26,9 +27,9 @@ export default async function handler(req, res) {
     }
 
 
-    // ===============================
+    // ============================================================
     // READ REQUEST
-    // ===============================
+    // ============================================================
 
     const {
       child,
@@ -37,9 +38,9 @@ export default async function handler(req, res) {
     } = req.body || {};
 
 
-    // ===============================
+    // ============================================================
     // VALIDATION
-    // ===============================
+    // ============================================================
 
     if (!child || !child.name) {
       return res.status(400).json({
@@ -47,13 +48,11 @@ export default async function handler(req, res) {
       });
     }
 
-
     if (!child.age) {
       return res.status(400).json({
         error: "Child age is required."
       });
     }
-
 
     if (!Array.isArray(memories) || memories.length === 0) {
       return res.status(400).json({
@@ -62,186 +61,409 @@ export default async function handler(req, res) {
     }
 
 
-    // ===============================
-    // PREPARE PHOTO INPUT
-    // ===============================
+    // ============================================================
+    // NORMALIZE MEMORIES
+    // ============================================================
 
-    const imageInputs = [];
+    const usableMemories = memories
+      .map((memory, originalIndex) => {
 
-    for (const memory of memories) {
+        if (!memory || typeof memory !== "object") {
+          return null;
+        }
 
-      if (
-        memory &&
-        typeof memory.image === "string" &&
-        memory.image.startsWith("data:image/")
-      ) {
+        if (
+          typeof memory.image !== "string" ||
+          !memory.image.startsWith("data:image/")
+        ) {
+          return null;
+        }
 
-        imageInputs.push({
-          type: "input_image",
-          image_url: memory.image
-        });
+        return {
+          index: originalIndex,
+          memory:
+            typeof memory.memory === "string"
+              ? memory.memory.trim()
+              : "",
+          fileName:
+            typeof memory.fileName === "string"
+              ? memory.fileName
+              : "",
+          image: memory.image
+        };
 
-      }
+      })
+      .filter(Boolean);
 
-    }
 
-
-    if (imageInputs.length === 0) {
+    if (usableMemories.length === 0) {
       return res.status(400).json({
         error: "No readable photos were received."
       });
     }
 
 
-    // ===============================
-    // PREPARE MEMORY INFORMATION
-    // ===============================
-
-    const memoryText = memories
-      .map((memory, index) => {
-
-        const photoNumber =
-          typeof memory.index === "number"
-            ? memory.index + 1
-            : index + 1;
-
-        return `
-PHOTO ${photoNumber}
-
-Parent's memory:
-${memory.memory || "No memory provided."}
-
-Original filename:
-${memory.fileName || "Unknown"}
-        `.trim();
-
-      })
-      .join("\n\n");
-
-
-    // ===============================
+    // ============================================================
     // STORY SETTINGS
-    // ===============================
+    // ============================================================
 
     const storyType =
-      story?.type || "Magical Adventure";
+      story?.type ||
+      "Magical Adventure";
 
     const setting =
-      story?.setting || "A magical world";
+      story?.setting ||
+      "A magical world";
 
     const lesson =
-      story?.lesson || "A positive life lesson";
+      story?.lesson ||
+      "A positive life lesson";
 
     const length =
-      story?.length || "medium";
+      story?.length ||
+      "medium";
 
     const tone =
-      story?.tone || "warm";
+      story?.tone ||
+      "warm";
 
 
-    // ===============================
-    // STORY LENGTH
-    // ===============================
+    // ============================================================
+    // DETERMINE PAGE COUNT
+    //
+    // We want the story to use the actual photos instead of
+    // repeatedly assigning the same photo to multiple pages.
+    // ============================================================
 
-    let pageInstruction;
+    let maxPages;
 
     if (length === "short") {
 
-      pageInstruction =
-        "Create 4 story pages with concise text.";
+      maxPages = 5;
 
     } else if (length === "long") {
 
-      pageInstruction =
-        "Create 10 story pages with richer storytelling.";
+      maxPages = 10;
 
     } else {
 
-      pageInstruction =
-        "Create 7 story pages with a balanced amount of storytelling.";
+      maxPages = 8;
 
     }
 
 
-    // ===============================
-    // AI INSTRUCTIONS
-    // ===============================
+    const pageCount =
+      Math.min(
+        usableMemories.length,
+        maxPages
+      );
+
+
+    // ============================================================
+    // PREPARE PHOTO + MEMORY INPUTS
+    //
+    // Each photo is immediately preceded by its identity and
+    // parent's memory so the model knows exactly which text
+    // belongs to which image.
+    // ============================================================
+
+    const photoInputs = [];
+
+    usableMemories.forEach((memory, index) => {
+
+      const photoNumber = index + 1;
+
+      photoInputs.push({
+        type: "input_text",
+        text: `
+PHOTO ${photoNumber}
+
+This is the child's real photograph number ${photoNumber}.
+
+Parent's memory for this photograph:
+${memory.memory || "No written memory was provided."}
+
+Filename:
+${memory.fileName || "Not provided."}
+
+IMPORTANT:
+Treat this photograph and its accompanying memory as one
+specific real-life memory. Do not mix it with another photo.
+        `.trim()
+      });
+
+
+      photoInputs.push({
+        type: "input_image",
+        image_url: memory.image,
+        detail: "high"
+      });
+
+    });
+
+
+    // ============================================================
+    // SYSTEM INSTRUCTIONS
+    // ============================================================
 
     const systemPrompt = `
-You are the creative story engine for "Once Upon My Child".
+You are the professional children's story engine for
+"Once Upon My Child".
 
-Your job is to transform a child's real photographs and the parent's memories into a beautiful personalized children's story.
+Your job is to transform a child's REAL photographs,
+their parent's REAL memories, and the parent's selected
+story preferences into a beautiful personalized children's
+storybook.
 
-The photographs are important.
+The result should feel like a treasured family story.
 
-Study the photographs carefully and use visible details such as:
+============================================================
+CORE PRINCIPLE
+============================================================
 
-- clothing
+REAL MEMORY + REAL PHOTO + IMAGINATION = PERSONAL STORY
+
+The parent's memories and the visible content of the
+photographs are the foundation.
+
+You may add imaginative elements to turn the memory into
+a magical children's story.
+
+However, you must NOT invent specific real-world facts
+about the family.
+
+For example:
+
+Allowed:
+"Emma imagined that the waves were whispering a secret."
+
+Not allowed:
+"Emma stayed at the Ocean View Resort with her grandparents."
+
+unless the parent actually provided that information.
+
+============================================================
+PHOTO UNDERSTANDING
+============================================================
+
+Study every supplied photograph carefully.
+
+Use visible details when appropriate, including:
+
 - surroundings
-- activities
-- objects
-- expressions
-- locations
-- relationships
-- animals
+- beach, park, home or other visible setting
+- clothing
 - toys
+- objects
+- animals
+- activities
+- visible expressions
+- scenery
+- weather
 - celebrations
-- memorable moments
+- visible relationships
+- actions
+- colors
+- recognizable physical elements
 
-Do NOT invent specific visual details that cannot reasonably be seen.
+Do NOT claim to know someone's identity, relationship,
+location or private information solely from appearance.
 
-Use the parent's written memories as additional context.
+If something is uncertain, keep the description general.
 
-The story must feel personal, warm, imaginative and emotionally meaningful.
+============================================================
+MEMORY MAPPING
+============================================================
 
-The child is the main character.
+Each supplied photo has a unique PHOTO NUMBER.
 
-The story should be appropriate for children.
+PHOTO 1 must remain PHOTO 1.
 
-Never mention artificial intelligence, image analysis, prompts, filenames, or this instruction.
+PHOTO 2 must remain PHOTO 2.
 
-Do not identify real people other than the child unless the parent explicitly provides their relationship.
+PHOTO 3 must remain PHOTO 3.
 
-Create a coherent beginning, middle and ending.
+And so on.
 
-The photographs should influence the sequence of the story.
+Never confuse one photograph with another.
 
-Return ONLY valid JSON.
+The parent's memory associated with a photograph belongs
+only to that photograph.
 
-The JSON must follow exactly this structure:
+============================================================
+STORY STRUCTURE
+============================================================
 
-{
-  "title": "Story title",
-  "subtitle": "Short subtitle",
-  "dedication": "Short personal dedication",
-  "pages": [
-    {
-      "photoIndex": 0,
-      "heading": "Page heading",
-      "text": "Story text"
-    }
-  ],
-  "ending": "Warm final ending"
-}
+Create one continuous story.
 
-photoIndex must refer to the photo number starting at 0.
+Do NOT write disconnected descriptions of photographs.
 
-Every story page should normally correspond to one of the supplied photographs.
+The story should have:
 
-Do not include markdown.
-Do not include code fences.
-Do not include explanations outside the JSON.
+1. A strong opening
+2. A reason for the adventure
+3. A developing adventure
+4. A meaningful challenge
+5. A moment of discovery or courage
+6. A satisfying resolution
+7. A warm emotional ending
+
+The child must remain the central character.
+
+The selected adventure type should influence the world,
+events and style of the story.
+
+============================================================
+CHILD AGE
+============================================================
+
+Adapt the vocabulary, sentence length and complexity to
+the child's age.
+
+Younger children:
+- simple vocabulary
+- short sentences
+- repetition
+- playful descriptions
+
+Older children:
+- richer descriptions
+- more developed dialogue
+- more sophisticated adventure
+
+Never make the story frightening or inappropriate for
+the child's age.
+
+============================================================
+PERSONALITY
+============================================================
+
+Use the child's personality naturally.
+
+Do not simply repeat the personality words.
+
+Instead, demonstrate them through actions.
+
+For example:
+
+If the child is described as curious,
+show them exploring.
+
+If they are described as funny,
+give them playful moments.
+
+If they are adventurous,
+let them make brave choices.
+
+============================================================
+FAVORITE THINGS
+============================================================
+
+Use favorite things naturally.
+
+Do not force every favorite into the story.
+
+Only include them when they fit organically.
+
+============================================================
+SPECIAL MESSAGE
+============================================================
+
+The parent's lesson should emerge naturally from the
+story.
+
+Do not turn the story into a lecture.
+
+The child should discover the lesson through the adventure.
+
+============================================================
+PHOTO USAGE RULE
+============================================================
+
+Each story page must use a DIFFERENT supplied photograph.
+
+Never assign the same photoIndex to two different pages.
+
+Use photos in a logical narrative sequence.
+
+Prefer the original upload order unless the visible
+content strongly suggests another sequence.
+
+Every selected photograph should meaningfully influence
+the story.
+
+If there are more photographs than the selected story
+length allows, choose the photographs that contribute
+most strongly to the narrative.
+
+Never invent additional photographs.
+
+============================================================
+STORY LENGTH
+============================================================
+
+The requested story should contain exactly the requested
+number of story pages.
+
+The number of pages is:
+
+${pageCount}
+
+Each page should contain approximately 90–150 words,
+depending on the child's age.
+
+Do not make every page the same length.
+
+============================================================
+TONE
+============================================================
+
+Requested tone:
+
+${tone}
+
+Keep the story:
+
+- warm
+- emotionally positive
+- imaginative
+- playful
+- family-friendly
+- suitable for a keepsake book
+
+============================================================
+OUTPUT
+============================================================
+
+Return ONLY the structured JSON requested by the schema.
+
+Do not return:
+
+- markdown
+- code fences
+- explanations
+- commentary
+- notes
+- analysis
+- extra fields
+
+The story should feel professionally written and
+publication-ready.
 `;
 
 
-    // ===============================
+    // ============================================================
     // USER PROMPT
-    // ===============================
+    // ============================================================
 
     const userPrompt = `
-Create a personalized children's story using the following information.
+Create a personalized children's storybook using the
+child information, story preferences, parent memories,
+and photographs provided below.
 
+============================================================
 CHILD
+============================================================
 
 Name:
 ${child.name}
@@ -256,57 +478,153 @@ Favorite things:
 ${child.favorites || "Not provided"}
 
 
+============================================================
 STORY PREFERENCES
+============================================================
 
-Story type:
+Adventure:
 ${storyType}
 
 Setting:
 ${setting}
 
-Lesson:
+Special message:
 ${lesson}
 
-Length:
+Story length:
 ${length}
 
 Tone:
 ${tone}
 
 
-PARENT MEMORIES
+============================================================
+PHOTOGRAPHIC MEMORIES
+============================================================
 
-${memoryText}
+There are ${usableMemories.length} real photographs.
 
+Each photograph is labeled PHOTO 1, PHOTO 2, PHOTO 3,
+and so on in the visual input.
 
-STORY REQUIREMENTS
+Use those photographs together with their matching
+parent memories to create one continuous story.
 
-${pageInstruction}
+Do not duplicate a photograph across story pages.
 
-Make the child feel like the hero of the story.
+The story should feel as though the child's real day
+has become a magical adventure.
 
-Use the actual photographs as visual inspiration.
+The magical elements should enhance the real memories,
+not replace them.
 
-Connect the photographs into one continuous story rather than treating them as unrelated images.
+Make the ending emotionally connect back to the
+special message:
 
-Include the parent's memories naturally.
-
-Make the story feel like a treasured childhood memory that the family could keep forever.
+${lesson}
 `;
 
 
-    // ===============================
+    // ============================================================
+    // STRUCTURED OUTPUT SCHEMA
+    // ============================================================
+
+    const storySchema = {
+
+      type: "object",
+
+      additionalProperties: false,
+
+      properties: {
+
+        title: {
+          type: "string"
+        },
+
+        subtitle: {
+          type: "string"
+        },
+
+        dedication: {
+          type: "string"
+        },
+
+        pages: {
+
+          type: "array",
+
+          minItems: pageCount,
+
+          maxItems: pageCount,
+
+          items: {
+
+            type: "object",
+
+            additionalProperties: false,
+
+            properties: {
+
+              photoIndex: {
+                type: "integer",
+                minimum: 0,
+                maximum: usableMemories.length - 1
+              },
+
+              heading: {
+                type: "string"
+              },
+
+              text: {
+                type: "string"
+              }
+
+            },
+
+            required: [
+              "photoIndex",
+              "heading",
+              "text"
+            ]
+
+          }
+
+        },
+
+        ending: {
+          type: "string"
+        }
+
+      },
+
+      required: [
+        "title",
+        "subtitle",
+        "dedication",
+        "pages",
+        "ending"
+      ]
+
+    };
+
+
+    // ============================================================
     // OPENAI REQUEST
-    // ===============================
+    // ============================================================
 
     const response = await fetch(
       "https://api.openai.com/v1/responses",
       {
+
         method: "POST",
 
         headers: {
+
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
+
+          "Authorization":
+            `Bearer ${apiKey}`
+
         },
 
         body: JSON.stringify({
@@ -314,42 +632,80 @@ Make the story feel like a treasured childhood memory that the family could keep
           model: "gpt-5.6-luna",
 
           input: [
-            {
-              role: "system",
-              content: [
-                {
-                  type: "input_text",
-                  text: systemPrompt
-                }
-              ]
-            },
 
             {
+
+              role: "system",
+
+              content: [
+
+                {
+
+                  type: "input_text",
+
+                  text: systemPrompt
+
+                }
+
+              ]
+
+            },
+
+
+            {
+
               role: "user",
 
               content: [
 
                 {
+
                   type: "input_text",
+
                   text: userPrompt
+
                 },
 
-                ...imageInputs
+                ...photoInputs
 
               ]
+
             }
+
           ],
 
-          max_output_tokens: 5000
+
+          text: {
+
+            format: {
+
+              type: "json_schema",
+
+              name: "once_upon_my_child_story",
+
+              description:
+                "A personalized children's storybook based on real family memories and photographs.",
+
+              strict: true,
+
+              schema: storySchema
+
+            }
+
+          },
+
+
+          max_output_tokens: 7000
 
         })
+
       }
     );
 
 
-    // ===============================
-    // HANDLE OPENAI ERROR
-    // ===============================
+    // ============================================================
+    // OPENAI ERROR HANDLING
+    // ============================================================
 
     if (!response.ok) {
 
@@ -362,46 +718,63 @@ Make the story feel like a treasured childhood memory that the family could keep
       );
 
       return res.status(500).json({
-        error: "The AI story service returned an error."
+        error:
+          "The AI story service returned an error."
       });
+
     }
 
 
-    // ===============================
-    // READ RESPONSE
-    // ===============================
+    // ============================================================
+    // READ OPENAI RESPONSE
+    // ============================================================
 
     const result =
       await response.json();
 
 
-    // ===============================
-    // EXTRACT TEXT
-    // ===============================
+    // ============================================================
+    // EXTRACT OUTPUT TEXT
+    // ============================================================
 
     let outputText = "";
 
 
-    if (typeof result.output_text === "string") {
+    if (
+      typeof result.output_text === "string"
+    ) {
 
       outputText =
         result.output_text.trim();
 
-    } else if (Array.isArray(result.output)) {
+    }
 
-      for (const outputItem of result.output) {
+
+    if (
+      !outputText &&
+      Array.isArray(result.output)
+    ) {
+
+      for (
+        const outputItem of result.output
+      ) {
 
         if (
           outputItem &&
           Array.isArray(outputItem.content)
         ) {
 
-          for (const contentItem of outputItem.content) {
+          for (
+            const contentItem
+              of outputItem.content
+          ) {
 
             if (
               contentItem &&
-              contentItem.type === "output_text" &&
-              typeof contentItem.text === "string"
+              contentItem.type ===
+                "output_text" &&
+              typeof contentItem.text ===
+                "string"
             ) {
 
               outputText +=
@@ -417,8 +790,13 @@ Make the story feel like a treasured childhood memory that the family could keep
 
       outputText =
         outputText.trim();
+
     }
 
+
+    // ============================================================
+    // EMPTY RESPONSE
+    // ============================================================
 
     if (!outputText) {
 
@@ -428,40 +806,23 @@ Make the story feel like a treasured childhood memory that the family could keep
       );
 
       return res.status(500).json({
-        error: "The AI returned an empty story."
+        error:
+          "The AI returned an empty story."
       });
-    }
-
-
-    // ===============================
-    // CLEAN JSON
-    // ===============================
-
-    let cleanText =
-      outputText.trim();
-
-
-    if (cleanText.startsWith("```")) {
-
-      cleanText =
-        cleanText
-          .replace(/^```(?:json)?/i, "")
-          .replace(/```$/i, "")
-          .trim();
 
     }
 
 
-    // ===============================
-    // PARSE STORY
-    // ===============================
+    // ============================================================
+    // PARSE JSON
+    // ============================================================
 
     let storyResult;
 
     try {
 
       storyResult =
-        JSON.parse(cleanText);
+        JSON.parse(outputText);
 
     } catch (parseError) {
 
@@ -476,14 +837,16 @@ Make the story feel like a treasured childhood memory that the family could keep
       );
 
       return res.status(500).json({
-        error: "The AI returned an invalid story format."
+        error:
+          "The AI returned an invalid story format."
       });
+
     }
 
 
-    // ===============================
-    // FINAL VALIDATION
-    // ===============================
+    // ============================================================
+    // FINAL STORY VALIDATION
+    // ============================================================
 
     if (
       !storyResult ||
@@ -491,7 +854,8 @@ Make the story feel like a treasured childhood memory that the family could keep
     ) {
 
       return res.status(500).json({
-        error: "The AI returned an invalid story."
+        error:
+          "The AI returned an invalid story."
       });
 
     }
@@ -501,14 +865,108 @@ Make the story feel like a treasured childhood memory that the family could keep
       !Array.isArray(storyResult.pages)
     ) {
 
-      storyResult.pages = [];
+      return res.status(500).json({
+        error:
+          "The AI did not return story pages."
+      });
 
     }
 
 
-    // ===============================
-    // SUCCESS
-    // ===============================
+    // ============================================================
+    // REMOVE DUPLICATE PHOTO ASSIGNMENTS
+    //
+    // This is an additional safety layer. The AI is instructed
+    // not to duplicate photos, but the server also checks.
+    // ============================================================
+
+    const usedPhotoIndexes =
+      new Set();
+
+    const cleanPages = [];
+
+
+    for (
+      const page of storyResult.pages
+    ) {
+
+      if (
+        !page ||
+        typeof page !== "object"
+      ) {
+        continue;
+      }
+
+
+      const photoIndex =
+        Number(page.photoIndex);
+
+
+      if (
+        !Number.isInteger(photoIndex)
+      ) {
+        continue;
+      }
+
+
+      if (
+        photoIndex < 0 ||
+        photoIndex >= usableMemories.length
+      ) {
+        continue;
+      }
+
+
+      if (
+        usedPhotoIndexes.has(photoIndex)
+      ) {
+        continue;
+      }
+
+
+      usedPhotoIndexes.add(
+        photoIndex
+      );
+
+
+      cleanPages.push({
+
+        photoIndex,
+
+        heading:
+          typeof page.heading === "string"
+            ? page.heading
+            : "A Special Moment",
+
+        text:
+          typeof page.text === "string"
+            ? page.text
+            : ""
+
+      });
+
+    }
+
+
+    // ============================================================
+    // FINAL RESPONSE
+    // ============================================================
+
+    storyResult.pages =
+      cleanPages;
+
+
+    if (
+      storyResult.pages.length === 0
+    ) {
+
+      return res.status(500).json({
+        error:
+          "The AI created a story without usable photo pages."
+      });
+
+    }
+
 
     return res.status(200).json({
       story: storyResult
@@ -523,11 +981,14 @@ Make the story feel like a treasured childhood memory that the family could keep
     );
 
     return res.status(500).json({
+
       error:
         error.message ||
         "Unable to generate the story."
+
     });
 
   }
 
 }
+```
