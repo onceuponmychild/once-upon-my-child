@@ -1,8 +1,3 @@
-/* =========================================================
-   ONCE UPON MY CHILD
-   Multi-Photo Story Builder V2
-   ========================================================= */
-
 const state = {
   currentStep: 1,
 
@@ -21,20 +16,14 @@ const state = {
     tone: "warm"
   },
 
-  photos: []
+  photos: [],
+  generatedStory: null
 };
 
 
-/* =========================================================
-   ELEMENTS
-   ========================================================= */
-
-const step1 = document.getElementById("step1");
-const step2 = document.getElementById("step2");
-const step3 = document.getElementById("step3");
-
-const progressBar = document.getElementById("progressBar");
-const stepLabel = document.getElementById("stepLabel");
+// ===============================
+// ELEMENTS
+// ===============================
 
 const childName = document.getElementById("childName");
 const childAge = document.getElementById("childAge");
@@ -52,35 +41,108 @@ const photoList = document.getElementById("photoList");
 const photoCount = document.getElementById("photoCount");
 const dropZone = document.getElementById("dropZone");
 
+const continueToPhotos = document.getElementById("continueToPhotos");
+const backToDetails = document.getElementById("backToDetails");
+const addMemoryBtn = document.getElementById("addMemoryBtn");
+const createStoryBtn = document.getElementById("createStoryBtn");
 
-/* =========================================================
-   STEP NAVIGATION
-   ========================================================= */
+const editStoryBtn = document.getElementById("editStoryBtn");
+const startOverBtn = document.getElementById("startOverBtn");
+const printStoryBtn = document.getElementById("printStoryBtn");
 
-function showStep(step) {
+const storyTitle = document.getElementById("storyTitle");
+const storySubtitle = document.getElementById("storySubtitle");
+const coverPhotoWrap = document.getElementById("coverPhotoWrap");
+const coverChildName = document.getElementById("coverChildName");
+const coverStoryType = document.getElementById("coverStoryType");
+const generatedPages = document.getElementById("generatedPages");
+const endingText = document.getElementById("endingText");
 
-  state.currentStep = step;
+const progressBar = document.getElementById("progressBar");
+const stepLabel = document.getElementById("stepLabel");
 
-  document.querySelectorAll(".screen").forEach(screen => {
-    screen.classList.remove("active");
+
+// ===============================
+// INITIAL SETUP
+// ===============================
+
+document.addEventListener("DOMContentLoaded", () => {
+  setupChoiceCards();
+  setupPhotoUpload();
+  updateStepUI();
+});
+
+
+// ===============================
+// CHOICE CARDS
+// ===============================
+
+function setupChoiceCards() {
+  const cards = document.querySelectorAll(".choice-card");
+
+  cards.forEach(card => {
+    card.addEventListener("click", () => {
+
+      const group = card.parentElement;
+
+      group.querySelectorAll(".choice-card").forEach(c => {
+        c.classList.remove("selected");
+      });
+
+      card.classList.add("selected");
+
+      const value = card.dataset.value || card.textContent.trim();
+
+      if (group.dataset.choice === "story-type") {
+        state.story.type = value;
+      }
+
+      if (group.dataset.choice === "setting") {
+        state.story.setting = value;
+      }
+
+      if (group.dataset.choice === "length") {
+        state.story.length = value;
+      }
+
+      if (group.dataset.choice === "tone") {
+        state.story.tone = value;
+      }
+    });
+  });
+}
+
+
+// ===============================
+// STEP NAVIGATION
+// ===============================
+
+function updateStepUI() {
+
+  const steps = [
+    document.getElementById("step1"),
+    document.getElementById("step2"),
+    document.getElementById("step3")
+  ];
+
+  steps.forEach((step, index) => {
+    if (!step) return;
+
+    step.classList.toggle(
+      "active",
+      index + 1 === state.currentStep
+    );
   });
 
-  if (step === 1) {
-    step1.classList.add("active");
+  if (progressBar) {
+    progressBar.style.width =
+      `${(state.currentStep / 3) * 100}%`;
   }
 
-  if (step === 2) {
-    step2.classList.add("active");
+  if (stepLabel) {
+    stepLabel.textContent =
+      `Step ${state.currentStep} of 3`;
   }
-
-  if (step === 3) {
-    step3.classList.add("active");
-  }
-
-  const progress = step === 1 ? 33 : step === 2 ? 66 : 100;
-
-  progressBar.style.width = `${progress}%`;
-  stepLabel.textContent = `Step ${step} of 3`;
 
   window.scrollTo({
     top: 0,
@@ -89,104 +151,69 @@ function showStep(step) {
 }
 
 
-/* =========================================================
-   STORY TYPE
-   ========================================================= */
-
-document.querySelectorAll(".choice-card").forEach(card => {
-
-  card.addEventListener("click", () => {
-
-    document.querySelectorAll(".choice-card").forEach(item => {
-      item.classList.remove("selected");
-    });
-
-    card.classList.add("selected");
-
-    state.story.type = card.dataset.value;
-  });
-
-});
-
-
-/* =========================================================
-   SAVE CHILD DETAILS
-   ========================================================= */
+// ===============================
+// CHILD DETAILS
+// ===============================
 
 function collectChildDetails() {
 
-  state.child.name = childName.value.trim();
-  state.child.age = childAge.value;
-  state.child.personality = personality.value.trim();
-  state.child.favorites = favorites.value.trim();
+  state.child.name = childName?.value.trim() || "";
+  state.child.age = childAge?.value.trim() || "";
+  state.child.personality = personality?.value.trim() || "";
+  state.child.favorites = favorites?.value.trim() || "";
 
-  state.story.setting = setting.value.trim();
-  state.story.lesson = lesson.value.trim();
+  state.story.setting = setting?.value.trim() || state.story.setting;
+  state.story.lesson = lesson?.value.trim() || "";
 
-  state.story.length = storyLength.value;
-  state.story.tone = storyTone.value;
+  if (storyLength) {
+    state.story.length = storyLength.value || state.story.length;
+  }
+
+  if (storyTone) {
+    state.story.tone = storyTone.value || state.story.tone;
+  }
 }
 
 
-/* =========================================================
-   CONTINUE BUTTON
-   ========================================================= */
+// ===============================
+// PHOTO UPLOAD
+// ===============================
 
-document.getElementById("continueToPhotos")
-  .addEventListener("click", () => {
+function setupPhotoUpload() {
 
-    collectChildDetails();
+  if (photoInput) {
+    photoInput.addEventListener("change", event => {
+      addPhotos(event.target.files);
+    });
+  }
 
-    if (!state.child.name) {
-      childName.focus();
-      alert("Please enter your child's name first.");
-      return;
-    }
+  if (dropZone) {
 
-    if (!state.child.age) {
-      childAge.focus();
-      alert("Please choose your child's age.");
-      return;
-    }
+    dropZone.addEventListener("dragover", event => {
+      event.preventDefault();
+      dropZone.classList.add("dragging");
+    });
 
-    showStep(2);
-  });
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("dragging");
+    });
 
+    dropZone.addEventListener("drop", event => {
+      event.preventDefault();
 
-/* =========================================================
-   BACK BUTTON
-   ========================================================= */
+      dropZone.classList.remove("dragging");
 
-document.getElementById("backToDetails")
-  .addEventListener("click", () => {
-
-    collectChildDetails();
-
-    showStep(1);
-  });
-
-
-/* =========================================================
-   PHOTO UPLOAD
-   ========================================================= */
-
-photoInput.addEventListener("change", event => {
-
-  const files = Array.from(event.target.files);
-
-  addPhotos(files);
-
-  photoInput.value = "";
-});
+      addPhotos(event.dataTransfer.files);
+    });
+  }
+}
 
 
 function addPhotos(files) {
 
-  const imageFiles = files.filter(file =>
-    file.type.startsWith("image/")
-  );
+  Array.from(files).forEach(file => {
 
-  imageFiles.forEach(file => {
+    if (!file.type.startsWith("image/")) return;
 
     const photo = {
       id: Date.now() + Math.random(),
@@ -202,60 +229,11 @@ function addPhotos(files) {
 }
 
 
-/* =========================================================
-   DRAG & DROP
-   ========================================================= */
-
-["dragenter", "dragover"].forEach(eventName => {
-
-  dropZone.addEventListener(eventName, event => {
-
-    event.preventDefault();
-
-    dropZone.classList.add("dragging");
-  });
-
-});
-
-
-["dragleave", "drop"].forEach(eventName => {
-
-  dropZone.addEventListener(eventName, event => {
-
-    event.preventDefault();
-
-    dropZone.classList.remove("dragging");
-  });
-
-});
-
-
-dropZone.addEventListener("drop", event => {
-
-  const files = Array.from(event.dataTransfer.files);
-
-  addPhotos(files);
-});
-
-
-/* =========================================================
-   RENDER PHOTO LIST
-   ========================================================= */
-
 function renderPhotos() {
 
+  if (!photoList) return;
+
   photoList.innerHTML = "";
-
-  if (state.photos.length === 0) {
-
-    photoCount.textContent = "0 photos";
-
-    return;
-  }
-
-  photoCount.textContent =
-    `${state.photos.length} photo${state.photos.length === 1 ? "" : "s"}`;
-
 
   state.photos.forEach((photo, index) => {
 
@@ -264,54 +242,47 @@ function renderPhotos() {
     item.className = "photo-item";
 
     item.innerHTML = `
-
-      <img
-        src="${photo.url}"
-        class="photo-thumb"
-        alt="Memory ${index + 1}"
-      >
+      <div class="photo-preview">
+        <img src="${photo.url}" alt="Photo ${index + 1}">
+      </div>
 
       <div class="photo-info">
 
-        <div class="photo-number">
-          Memory ${index + 1}
-        </div>
+        <strong>Photo ${index + 1}</strong>
 
-        <input
-          type="text"
+        <textarea
+          placeholder="What memory does this photo represent?"
+          data-photo-id="${photo.id}"
           class="memory-input"
-          data-id="${photo.id}"
-          value="${escapeHTML(photo.memory)}"
-          placeholder="What happened in this photo?"
-        >
+        >${escapeHtml(photo.memory)}</textarea>
 
-      </div>
+        <div class="photo-actions">
 
-      <div class="photo-actions">
+          <button
+            type="button"
+            class="photo-up"
+            data-id="${photo.id}"
+          >
+            ↑
+          </button>
 
-        <button
-          class="icon-btn move-up"
-          data-id="${photo.id}"
-          title="Move photo earlier"
-        >
-          ↑
-        </button>
+          <button
+            type="button"
+            class="photo-down"
+            data-id="${photo.id}"
+          >
+            ↓
+          </button>
 
-        <button
-          class="icon-btn move-down"
-          data-id="${photo.id}"
-          title="Move photo later"
-        >
-          ↓
-        </button>
+          <button
+            type="button"
+            class="photo-delete"
+            data-id="${photo.id}"
+          >
+            Delete
+          </button>
 
-        <button
-          class="icon-btn delete-photo"
-          data-id="${photo.id}"
-          title="Remove photo"
-        >
-          ×
-        </button>
+        </div>
 
       </div>
     `;
@@ -319,511 +290,506 @@ function renderPhotos() {
     photoList.appendChild(item);
   });
 
+  document.querySelectorAll(".memory-input").forEach(input => {
 
-  /* MEMORY INPUTS */
+    input.addEventListener("input", event => {
 
-  document.querySelectorAll(".memory-input")
-    .forEach(input => {
+      const id = Number(event.target.dataset.photoId);
 
-      input.addEventListener("input", event => {
+      const photo = state.photos.find(
+        p => Number(p.id) === id
+      );
 
-        const id = Number(event.target.dataset.id);
+      if (photo) {
+        photo.memory = event.target.value;
+      }
+    });
 
-        const photo = state.photos.find(
-          item => Number(item.id) === id
-        );
+  });
 
-        if (photo) {
-          photo.memory = event.target.value;
-        }
+  document.querySelectorAll(".photo-delete").forEach(button => {
 
-      });
+    button.addEventListener("click", () => {
+
+      const id = Number(button.dataset.id);
+
+      const index = state.photos.findIndex(
+        p => Number(p.id) === id
+      );
+
+      if (index !== -1) {
+
+        URL.revokeObjectURL(state.photos[index].url);
+
+        state.photos.splice(index, 1);
+
+        renderPhotos();
+      }
 
     });
 
+  });
 
-  /* DELETE */
+  document.querySelectorAll(".photo-up").forEach(button => {
 
-  document.querySelectorAll(".delete-photo")
-    .forEach(button => {
+    button.addEventListener("click", () => {
 
-      button.addEventListener("click", () => {
-
-        const id = Number(button.dataset.id);
-
-        const index = state.photos.findIndex(
-          item => Number(item.id) === id
-        );
-
-        if (index !== -1) {
-
-          URL.revokeObjectURL(state.photos[index].url);
-
-          state.photos.splice(index, 1);
-
-          renderPhotos();
-        }
-
-      });
-
+      movePhoto(Number(button.dataset.id), -1);
     });
 
+  });
 
-  /* MOVE UP */
+  document.querySelectorAll(".photo-down").forEach(button => {
 
-  document.querySelectorAll(".move-up")
-    .forEach(button => {
+    button.addEventListener("click", () => {
 
-      button.addEventListener("click", () => {
-
-        const id = Number(button.dataset.id);
-
-        const index = state.photos.findIndex(
-          item => Number(item.id) === id
-        );
-
-        if (index > 0) {
-
-          [
-            state.photos[index - 1],
-            state.photos[index]
-          ] = [
-            state.photos[index],
-            state.photos[index - 1]
-          ];
-
-          renderPhotos();
-        }
-
-      });
-
+      movePhoto(Number(button.dataset.id), 1);
     });
 
+  });
 
-  /* MOVE DOWN */
-
-  document.querySelectorAll(".move-down")
-    .forEach(button => {
-
-      button.addEventListener("click", () => {
-
-        const id = Number(button.dataset.id);
-
-        const index = state.photos.findIndex(
-          item => Number(item.id) === id
-        );
-
-        if (
-          index !== -1 &&
-          index < state.photos.length - 1
-        ) {
-
-          [
-            state.photos[index],
-            state.photos[index + 1]
-          ] = [
-            state.photos[index + 1],
-            state.photos[index]
-          ];
-
-          renderPhotos();
-        }
-
-      });
-
-    });
-
+  if (photoCount) {
+    photoCount.textContent =
+      `${state.photos.length} photo${state.photos.length === 1 ? "" : "s"}`;
+  }
 }
 
 
-/* =========================================================
-   ADD ANOTHER MEMORY
-   ========================================================= */
+function movePhoto(id, direction) {
 
-document.getElementById("addMemoryBtn")
-  .addEventListener("click", () => {
+  const index = state.photos.findIndex(
+    p => Number(p.id) === id
+  );
 
-    photoInput.click();
-  });
+  if (index === -1) return;
+
+  const newIndex = index + direction;
+
+  if (
+    newIndex < 0 ||
+    newIndex >= state.photos.length
+  ) {
+    return;
+  }
+
+  const temp = state.photos[index];
+
+  state.photos[index] =
+    state.photos[newIndex];
+
+  state.photos[newIndex] = temp;
+
+  renderPhotos();
+}
 
 
-/* =========================================================
-   CREATE STORY
-   ========================================================= */
+// ===============================
+// CREATE AI STORY
+// ===============================
 
-document.getElementById("createStoryBtn")
-  .addEventListener("click", () => {
+async function generateAIStory() {
 
-    collectChildDetails();
+  collectChildDetails();
 
-    if (state.photos.length === 0) {
+  if (!state.child.name) {
+    alert("Please enter the child's name.");
+    return;
+  }
 
-      const proceed = confirm(
-        "You haven't added any photos yet. " +
-        "Would you like to create the story without photos?"
+  if (!state.child.age) {
+    alert("Please enter the child's age.");
+    return;
+  }
+
+  if (state.photos.length === 0) {
+    alert("Please upload at least one photo.");
+    return;
+  }
+
+  const originalText =
+    createStoryBtn.textContent;
+
+  createStoryBtn.disabled = true;
+
+  createStoryBtn.textContent =
+    "✨ Creating your story...";
+
+  try {
+
+    const requestData = {
+
+      child: state.child,
+
+      story: state.story,
+
+      memories: state.photos.map((photo, index) => ({
+        index: index,
+        memory: photo.memory || "",
+        fileName: photo.file?.name || ""
+      }))
+
+    };
+
+
+    const response = await fetch(
+      "/api/generate-story",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(requestData)
+      }
+    );
+
+
+    const data = await response.json();
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        "The AI story engine could not create the story."
       );
 
-      if (!proceed) {
-        return;
-      }
     }
 
-    buildStory();
 
-    showStep(3);
-  });
+    if (!data.story) {
 
+      throw new Error(
+        "The AI returned an unexpected response."
+      );
 
-/* =========================================================
-   STORY GENERATION
-   ========================================================= */
-
-function buildStory() {
-
-  const name = state.child.name;
-  const age = state.child.age;
-
-  document.getElementById("storyTitle").textContent =
-    `${name}'s ${state.story.type}`;
-
-  document.getElementById("storySubtitle").textContent =
-    `A personalized story created from ${name}'s special memories.`;
-
-  document.getElementById("coverChildName").textContent =
-    name;
-
-  document.getElementById("coverStoryType").textContent =
-    state.story.type;
+    }
 
 
-  /* COVER PHOTO */
+    state.generatedStory = data.story;
 
-  const coverPhotoWrap =
-    document.getElementById("coverPhotoWrap");
+    renderAIStory();
 
-  if (state.photos.length > 0) {
+    state.currentStep = 3;
+
+    updateStepUI();
+
+  }
+
+  catch (error) {
+
+    console.error("AI STORY ERROR:", error);
+
+    alert(
+      "We couldn't create the story yet.\n\n" +
+      error.message
+    );
+
+  }
+
+  finally {
+
+    createStoryBtn.disabled = false;
+
+    createStoryBtn.textContent =
+      originalText || "Create My Story";
+
+  }
+}
+
+
+// ===============================
+// RENDER AI STORY
+// ===============================
+
+function renderAIStory() {
+
+  const story = state.generatedStory;
+
+  if (!story) return;
+
+
+  // TITLE
+
+  if (storyTitle) {
+    storyTitle.textContent =
+      story.title || "Our Story";
+  }
+
+
+  if (storySubtitle) {
+    storySubtitle.textContent =
+      story.subtitle || "";
+  }
+
+
+  if (coverChildName) {
+    coverChildName.textContent =
+      state.child.name;
+  }
+
+
+  if (coverStoryType) {
+    coverStoryType.textContent =
+      state.story.type;
+  }
+
+
+  // COVER PHOTO
+
+  if (
+    coverPhotoWrap &&
+    state.photos.length > 0
+  ) {
 
     coverPhotoWrap.innerHTML = `
       <img
         src="${state.photos[0].url}"
-        alt="${escapeHTML(name)}"
+        alt="${escapeHtml(state.child.name)}"
       >
     `;
 
-  } else {
-
-    coverPhotoWrap.innerHTML = `
-      <div class="cover-placeholder">
-        📖
-      </div>
-    `;
   }
 
 
-  /* STORY PAGES */
+  // STORY PAGES
 
-  const generatedPages =
-    document.getElementById("generatedPages");
+  if (generatedPages) {
 
-  generatedPages.innerHTML = "";
-
-
-  if (state.photos.length === 0) {
-
-    generatedPages.innerHTML = createNoPhotoPage();
-
-  } else {
-
-    state.photos.forEach((photo, index) => {
-
-      generatedPages.insertAdjacentHTML(
-        "beforeend",
-        createMemoryPage(photo, index)
-      );
-
-    });
-
-  }
+    generatedPages.innerHTML = "";
 
 
-  /* ENDING */
+    // Dedication
 
-  const lessonText = state.story.lesson
-    ? `Along the way, ${name} discovered something important: ${state.story.lesson}.`
-    : `${name} discovered that the most wonderful adventures are often the ones made from ordinary moments with the people we love.`;
+    if (story.dedication) {
 
-  document.getElementById("endingText").textContent =
-    lessonText;
-}
+      const dedication =
+        document.createElement("div");
 
+      dedication.className = "story-page";
 
-/* =========================================================
-   MEMORY PAGE
-   ========================================================= */
+      dedication.innerHTML = `
+        <div class="story-page-content">
 
-function createMemoryPage(photo, index) {
+          <div class="story-page-label">
+            A Special Dedication
+          </div>
 
-  const name = state.child.name;
+          <p class="story-text">
+            ${escapeHtml(story.dedication)}
+          </p>
 
-  const memory = photo.memory.trim();
-
-  const heading = getMemoryHeading(index);
-
-  const paragraph = createStoryParagraph(
-    name,
-    memory,
-    index
-  );
-
-  return `
-
-    <article class="story-page memory-page">
-
-      <img
-        class="story-photo"
-        src="${photo.url}"
-        alt="${escapeHTML(name)} memory ${index + 1}"
-      >
-
-      <div class="story-text">
-
-        <div class="story-page-number">
-          Chapter ${index + 1}
         </div>
+      `;
 
-        <h2>
-          ${heading}
-        </h2>
-
-        <p>
-          ${paragraph}
-        </p>
-
-      </div>
-
-    </article>
-
-  `;
-}
-
-
-/* =========================================================
-   STORY HEADINGS
-   ========================================================= */
-
-function getMemoryHeading(index) {
-
-  const headings = [
-    "The Adventure Begins",
-    "A Moment to Remember",
-    "Something Wonderful",
-    "The Day Became Magical",
-    "A Special Little Moment",
-    "And Then Something Happened",
-    "The Memory They Would Keep",
-    "The Best Part of the Adventure"
-  ];
-
-  return headings[index % headings.length];
-}
-
-
-/* =========================================================
-   STORY PARAGRAPHS
-   ========================================================= */
-
-function createStoryParagraph(name, memory, index) {
-
-  const personality =
-    state.child.personality ||
-    "curious and wonderful";
-
-  const favorites =
-    state.child.favorites ||
-    "all the little things that make them smile";
-
-  const setting =
-    state.story.setting ||
-    "a place filled with possibilities";
-
-
-  if (memory) {
-
-    const templates = [
-
-      `${name} was ${personality}, and on this particular day, an ordinary moment was about to become something worth remembering forever. ${memory} As ${name} looked around, there was a feeling that this was going to be one of those days that stayed in the heart for a very long time.`,
-
-      `There are some memories that seem to sparkle a little brighter than the rest. ${memory} ${name} couldn't help but feel happy. It was the kind of moment that reminded everyone just how special the little things can be.`,
-
-      `The adventure continued, and ${name} was right in the middle of it. ${memory} With a heart full of excitement and a mind full of wonder, ${name} discovered that even the smallest adventure could become a treasured memory.`,
-
-      `${memory} For ${name}, it wasn't simply another day. It was a moment filled with laughter, discovery and the people who made everything feel special.`
-    ];
-
-    return templates[index % templates.length];
-  }
-
-
-  return `
-    In ${setting}, ${name} discovered that adventures don't always
-    begin with a map or a mysterious treasure.
-    Sometimes they begin with curiosity, a happy heart,
-    and ${favorites}.
-    And with ${name}'s ${personality} spirit,
-    there was no telling where the day might lead.
-  `;
-}
-
-
-/* =========================================================
-   NO PHOTO PAGE
-   ========================================================= */
-
-function createNoPhotoPage() {
-
-  const name = state.child.name;
-
-  return `
-
-    <article class="story-page memory-page">
-
-      <div
-        style="
-          min-height:760px;
-          display:grid;
-          place-items:center;
-          background:#f0eaff;
-          font-size:70px;
-        "
-      >
-        ✨
-      </div>
-
-      <div class="story-text">
-
-        <div class="story-page-number">
-          Chapter 1
-        </div>
-
-        <h2>
-          ${name}'s Adventure Begins
-        </h2>
-
-        <p>
-          Once upon a time, there was a wonderful child named
-          ${escapeHTML(name)}.
-          Their story was only beginning, and somewhere beyond
-          the next moment waited a brand-new adventure.
-        </p>
-
-      </div>
-
-    </article>
-
-  `;
-}
-
-
-/* =========================================================
-   EDIT STORY
-   ========================================================= */
-
-document.getElementById("editStoryBtn")
-  .addEventListener("click", () => {
-
-    showStep(2);
-  });
-
-
-/* =========================================================
-   START OVER
-   ========================================================= */
-
-document.getElementById("startOverBtn")
-  .addEventListener("click", () => {
-
-    const confirmed = confirm(
-      "Start a new story? Your current story will be cleared."
-    );
-
-    if (!confirmed) {
-      return;
+      generatedPages.appendChild(dedication);
     }
 
-    state.currentStep = 1;
 
-    state.child = {
-      name: "",
-      age: "",
-      personality: "",
-      favorites: ""
-    };
+    // AI pages
 
-    state.story = {
-      type: "Magical Adventure",
-      setting: "",
-      lesson: "",
-      length: "medium",
-      tone: "warm"
-    };
+    (story.pages || []).forEach(
+      (page, index) => {
 
-    state.photos.forEach(photo => {
-      URL.revokeObjectURL(photo.url);
-    });
+        const pageElement =
+          document.createElement("div");
 
-    state.photos = [];
-
-    childName.value = "";
-    childAge.value = "";
-    personality.value = "";
-    favorites.value = "";
-    setting.value = "";
-    lesson.value = "";
-
-    storyLength.value = "medium";
-    storyTone.value = "warm";
-
-    document.querySelectorAll(".choice-card")
-      .forEach(card => card.classList.remove("selected"));
-
-    document.querySelector(".choice-card")
-      ?.classList.add("selected");
-
-    renderPhotos();
-
-    showStep(1);
-  });
+        pageElement.className =
+          "story-page";
 
 
-/* =========================================================
-   PRINT
-   ========================================================= */
+        let imageHTML = "";
 
-document.getElementById("printStoryBtn")
-  .addEventListener("click", () => {
-
-    window.print();
-  });
+        let photoIndex =
+          typeof page.photoIndex === "number"
+            ? page.photoIndex
+            : index;
 
 
-/* =========================================================
-   ESCAPE HTML
-   ========================================================= */
+        if (
+          state.photos.length > 0 &&
+          photoIndex < state.photos.length
+        ) {
 
-function escapeHTML(value) {
+          imageHTML = `
+            <div class="story-page-image">
+              <img
+                src="${state.photos[photoIndex].url}"
+                alt="Memory ${photoIndex + 1}"
+              >
+            </div>
+          `;
 
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+        }
+
+
+        pageElement.innerHTML = `
+
+          ${imageHTML}
+
+          <div class="story-page-content">
+
+            <div class="story-page-label">
+              ${escapeHtml(
+                page.heading ||
+                `Chapter ${index + 1}`
+              )}
+            </div>
+
+            <p class="story-text">
+              ${escapeHtml(
+                page.text || ""
+              )}
+            </p>
+
+          </div>
+
+        `;
+
+        generatedPages.appendChild(
+          pageElement
+        );
+      }
+    );
+
+  }
+
+
+  // ENDING
+
+  if (endingText) {
+
+    endingText.textContent =
+      story.ending ||
+      `And that was the beginning of another wonderful adventure for ${state.child.name}.`;
+  }
 }
 
 
-/* =========================================================
-   INITIALIZE
-   ========================================================= */
+// ===============================
+// BUTTONS
+// ===============================
 
-renderPhotos();
-showStep(1);
+if (continueToPhotos) {
+
+  continueToPhotos.addEventListener(
+    "click",
+    () => {
+
+      collectChildDetails();
+
+      state.currentStep = 2;
+
+      updateStepUI();
+    }
+  );
+
+}
+
+
+if (backToDetails) {
+
+  backToDetails.addEventListener(
+    "click",
+    () => {
+
+      state.currentStep = 1;
+
+      updateStepUI();
+    }
+  );
+
+}
+
+
+if (createStoryBtn) {
+
+  createStoryBtn.addEventListener(
+    "click",
+    generateAIStory
+  );
+
+}
+
+
+if (editStoryBtn) {
+
+  editStoryBtn.addEventListener(
+    "click",
+    () => {
+
+      state.currentStep = 1;
+
+      updateStepUI();
+    }
+  );
+
+}
+
+
+if (startOverBtn) {
+
+  startOverBtn.addEventListener(
+    "click",
+    () => {
+
+      location.reload();
+
+    }
+  );
+
+}
+
+
+if (printStoryBtn) {
+
+  printStoryBtn.addEventListener(
+    "click",
+    () => {
+
+      window.print();
+
+    }
+  );
+
+}
+
+
+// ===============================
+// ADD MEMORY BUTTON
+// ===============================
+
+if (addMemoryBtn) {
+
+  addMemoryBtn.addEventListener(
+    "click",
+    () => {
+
+      if (photoInput) {
+        photoInput.click();
+      }
+
+    }
+  );
+
+}
+
+
+// ===============================
+// SECURITY / HTML ESCAPING
+// ===============================
+
+function escapeHtml(value) {
+
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
