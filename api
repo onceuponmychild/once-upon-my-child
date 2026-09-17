@@ -1,403 +1,1050 @@
-export default async function handler(req, res) {
-  // --------------------------------------------------
-  // ONLY ACCEPT POST REQUESTS
-  // --------------------------------------------------
+```javascript
+const state = {
+  currentStep: 1,
 
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed"
+  child: {
+    name: "",
+    age: "",
+    personality: "",
+    favorites: ""
+  },
+
+  story: {
+    type: "Magical Adventure",
+    setting: "",
+    lesson: "",
+    length: "medium",
+    tone: "warm"
+  },
+
+  photos: [],
+  generatedStory: null
+};
+
+
+// ===============================
+// ELEMENTS
+// ===============================
+
+const childName = document.getElementById("childName");
+const childAge = document.getElementById("childAge");
+const personality = document.getElementById("personality");
+const favorites = document.getElementById("favorites");
+
+const setting = document.getElementById("setting");
+const lesson = document.getElementById("lesson");
+
+const storyLength = document.getElementById("storyLength");
+const storyTone = document.getElementById("storyTone");
+
+const photoInput = document.getElementById("photoInput");
+const photoList = document.getElementById("photoList");
+const photoCount = document.getElementById("photoCount");
+const dropZone = document.getElementById("dropZone");
+
+const continueToPhotos = document.getElementById("continueToPhotos");
+const backToDetails = document.getElementById("backToDetails");
+const addMemoryBtn = document.getElementById("addMemoryBtn");
+const createStoryBtn = document.getElementById("createStoryBtn");
+
+const editStoryBtn = document.getElementById("editStoryBtn");
+const startOverBtn = document.getElementById("startOverBtn");
+const printStoryBtn = document.getElementById("printStoryBtn");
+
+const storyTitle = document.getElementById("storyTitle");
+const storySubtitle = document.getElementById("storySubtitle");
+const coverPhotoWrap = document.getElementById("coverPhotoWrap");
+const coverChildName = document.getElementById("coverChildName");
+const coverStoryType = document.getElementById("coverStoryType");
+const generatedPages = document.getElementById("generatedPages");
+const endingText = document.getElementById("endingText");
+
+const progressBar = document.getElementById("progressBar");
+const stepLabel = document.getElementById("stepLabel");
+
+
+// ===============================
+// INITIAL SETUP
+// ===============================
+
+document.addEventListener("DOMContentLoaded", () => {
+  setupChoiceCards();
+  setupPhotoUpload();
+  updateStepUI();
+});
+
+
+// ===============================
+// CHOICE CARDS
+// ===============================
+
+function setupChoiceCards() {
+  const cards = document.querySelectorAll(".choice-card");
+
+  cards.forEach(card => {
+    card.addEventListener("click", () => {
+
+      const group = card.parentElement;
+
+      group.querySelectorAll(".choice-card").forEach(c => {
+        c.classList.remove("selected");
+      });
+
+      card.classList.add("selected");
+
+      const value = card.dataset.value || card.textContent.trim();
+
+      if (group.dataset.choice === "story-type") {
+        state.story.type = value;
+      }
+
+      if (group.dataset.choice === "setting") {
+        state.story.setting = value;
+      }
+
+      if (group.dataset.choice === "length") {
+        state.story.length = value;
+      }
+
+      if (group.dataset.choice === "tone") {
+        state.story.tone = value;
+      }
+    });
+  });
+}
+
+
+// ===============================
+// STEP NAVIGATION
+// ===============================
+
+function updateStepUI() {
+
+  const steps = [
+    document.getElementById("step1"),
+    document.getElementById("step2"),
+    document.getElementById("step3")
+  ];
+
+  steps.forEach((step, index) => {
+    if (!step) return;
+
+    step.classList.toggle(
+      "active",
+      index + 1 === state.currentStep
+    );
+  });
+
+  if (progressBar) {
+    progressBar.style.width =
+      `${(state.currentStep / 3) * 100}%`;
+  }
+
+  if (stepLabel) {
+    stepLabel.textContent =
+      `Step ${state.currentStep} of 3`;
+  }
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+
+// ===============================
+// CHILD DETAILS
+// ===============================
+
+function collectChildDetails() {
+
+  state.child.name = childName?.value.trim() || "";
+  state.child.age = childAge?.value.trim() || "";
+  state.child.personality = personality?.value.trim() || "";
+  state.child.favorites = favorites?.value.trim() || "";
+
+  state.story.setting =
+    setting?.value.trim() || state.story.setting;
+
+  state.story.lesson =
+    lesson?.value.trim() || "";
+
+  if (storyLength) {
+    state.story.length =
+      storyLength.value || state.story.length;
+  }
+
+  if (storyTone) {
+    state.story.tone =
+      storyTone.value || state.story.tone;
+  }
+}
+
+
+// ===============================
+// PHOTO UPLOAD
+// ===============================
+
+function setupPhotoUpload() {
+
+  if (photoInput) {
+    photoInput.addEventListener("change", event => {
+      addPhotos(event.target.files);
+
+      // Allows the same file to be selected again later.
+      event.target.value = "";
     });
   }
 
-  // --------------------------------------------------
-  // CHECK OPENAI KEY
-  // --------------------------------------------------
+  if (dropZone) {
 
-  if (!process.env.OPENAI_API_KEY) {
-    console.error("OPENAI_API_KEY is missing.");
+    dropZone.addEventListener("dragover", event => {
+      event.preventDefault();
+      dropZone.classList.add("dragging");
+    });
 
-    return res.status(500).json({
-      error: "AI Story Engine is not configured."
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("dragging");
+    });
+
+    dropZone.addEventListener("drop", event => {
+      event.preventDefault();
+
+      dropZone.classList.remove("dragging");
+
+      addPhotos(event.dataTransfer.files);
     });
   }
+}
+
+
+function addPhotos(files) {
+
+  if (!files) return;
+
+  Array.from(files).forEach(file => {
+
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+
+    const photo = {
+      id: Date.now() + Math.random(),
+      file: file,
+      url: URL.createObjectURL(file),
+      memory: ""
+    };
+
+    state.photos.push(photo);
+  });
+
+  renderPhotos();
+}
+
+
+function renderPhotos() {
+
+  if (!photoList) return;
+
+  photoList.innerHTML = "";
+
+  state.photos.forEach((photo, index) => {
+
+    const item = document.createElement("div");
+
+    item.className = "photo-item";
+
+    item.innerHTML = `
+      <div class="photo-preview">
+        <img
+          src="${photo.url}"
+          alt="Photo ${index + 1}"
+        >
+      </div>
+
+      <div class="photo-info">
+
+        <strong>Photo ${index + 1}</strong>
+
+        <textarea
+          placeholder="What memory does this photo represent?"
+          data-photo-id="${photo.id}"
+          class="memory-input"
+        >${escapeHtml(photo.memory)}</textarea>
+
+        <div class="photo-actions">
+
+          <button
+            type="button"
+            class="photo-up"
+            data-id="${photo.id}"
+          >
+            ↑
+          </button>
+
+          <button
+            type="button"
+            class="photo-down"
+            data-id="${photo.id}"
+          >
+            ↓
+          </button>
+
+          <button
+            type="button"
+            class="photo-delete"
+            data-id="${photo.id}"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      </div>
+    `;
+
+    photoList.appendChild(item);
+  });
+
+
+  // MEMORY INPUTS
+
+  document.querySelectorAll(".memory-input").forEach(input => {
+
+    input.addEventListener("input", event => {
+
+      const id = Number(event.target.dataset.photoId);
+
+      const photo = state.photos.find(
+        p => Number(p.id) === id
+      );
+
+      if (photo) {
+        photo.memory = event.target.value;
+      }
+    });
+
+  });
+
+
+  // DELETE
+
+  document.querySelectorAll(".photo-delete").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      const id = Number(button.dataset.id);
+
+      const index = state.photos.findIndex(
+        p => Number(p.id) === id
+      );
+
+      if (index !== -1) {
+
+        URL.revokeObjectURL(
+          state.photos[index].url
+        );
+
+        state.photos.splice(index, 1);
+
+        renderPhotos();
+      }
+
+    });
+
+  });
+
+
+  // MOVE UP
+
+  document.querySelectorAll(".photo-up").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      movePhoto(
+        Number(button.dataset.id),
+        -1
+      );
+
+    });
+
+  });
+
+
+  // MOVE DOWN
+
+  document.querySelectorAll(".photo-down").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      movePhoto(
+        Number(button.dataset.id),
+        1
+      );
+
+    });
+
+  });
+
+
+  if (photoCount) {
+    photoCount.textContent =
+      `${state.photos.length} photo${state.photos.length === 1 ? "" : "s"}`;
+  }
+}
+
+
+function movePhoto(id, direction) {
+
+  const index = state.photos.findIndex(
+    p => Number(p.id) === id
+  );
+
+  if (index === -1) return;
+
+  const newIndex = index + direction;
+
+  if (
+    newIndex < 0 ||
+    newIndex >= state.photos.length
+  ) {
+    return;
+  }
+
+  const temp = state.photos[index];
+
+  state.photos[index] =
+    state.photos[newIndex];
+
+  state.photos[newIndex] =
+    temp;
+
+  renderPhotos();
+}
+
+
+// ===============================
+// IMAGE COMPRESSION
+// ===============================
+
+function compressImage(file) {
+
+  return new Promise((resolve, reject) => {
+
+    const reader = new FileReader();
+
+    reader.onload = event => {
+
+      const image = new Image();
+
+      image.onload = () => {
+
+        const maxDimension = 1600;
+
+        let width = image.width;
+        let height = image.height;
+
+        if (width > maxDimension || height > maxDimension) {
+
+          if (width > height) {
+
+            height =
+              Math.round(
+                height * maxDimension / width
+              );
+
+            width = maxDimension;
+
+          } else {
+
+            width =
+              Math.round(
+                width * maxDimension / height
+              );
+
+            height = maxDimension;
+          }
+        }
+
+
+        const canvas =
+          document.createElement("canvas");
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const context =
+          canvas.getContext("2d");
+
+        context.drawImage(
+          image,
+          0,
+          0,
+          width,
+          height
+        );
+
+
+        // JPEG keeps the request size manageable.
+        const dataUrl =
+          canvas.toDataURL(
+            "image/jpeg",
+            0.78
+          );
+
+        resolve(dataUrl);
+      };
+
+
+      image.onerror = () => {
+        reject(
+          new Error(
+            "One of the uploaded photos could not be processed."
+          )
+        );
+      };
+
+
+      image.src = event.target.result;
+    };
+
+
+    reader.onerror = () => {
+      reject(
+        new Error(
+          "Could not read one of the uploaded photos."
+        )
+      );
+    };
+
+
+    reader.readAsDataURL(file);
+  });
+}
+
+
+// ===============================
+// PREPARE PHOTOS FOR AI
+// ===============================
+
+async function preparePhotosForAI() {
+
+  const preparedPhotos = [];
+
+  for (
+    let index = 0;
+    index < state.photos.length;
+    index++
+  ) {
+
+    const photo = state.photos[index];
+
+    const imageData =
+      await compressImage(photo.file);
+
+    preparedPhotos.push({
+
+      index: index,
+
+      memory:
+        photo.memory || "",
+
+      fileName:
+        photo.file?.name || "",
+
+      image:
+        imageData
+
+    });
+  }
+
+  return preparedPhotos;
+}
+
+
+// ===============================
+// CREATE AI STORY
+// ===============================
+
+async function generateAIStory() {
+
+  collectChildDetails();
+
+  if (!state.child.name) {
+    alert("Please enter the child's name.");
+    return;
+  }
+
+  if (!state.child.age) {
+    alert("Please enter the child's age.");
+    return;
+  }
+
+  if (state.photos.length === 0) {
+    alert("Please upload at least one photo.");
+    return;
+  }
+
+  const originalText =
+    createStoryBtn.textContent;
+
+  createStoryBtn.disabled = true;
+
+  createStoryBtn.textContent =
+    "✨ Preparing your memories...";
+
 
   try {
-    const {
-      child = {},
-      story = {},
-      memories = []
-    } = req.body || {};
 
-    // --------------------------------------------------
-    // VALIDATE CHILD
-    // --------------------------------------------------
-
-    if (!child.name) {
-      return res.status(400).json({
-        error: "Child's name is required."
-      });
-    }
-
-    if (!child.age) {
-      return res.status(400).json({
-        error: "Child's age is required."
-      });
-    }
-
-    // --------------------------------------------------
-    // VALIDATE MEMORIES
-    // --------------------------------------------------
-
-    if (!Array.isArray(memories) || memories.length === 0) {
-      return res.status(400).json({
-        error: "At least one memory is required."
-      });
-    }
-
-    // --------------------------------------------------
-    // BUILD MEMORY INFORMATION
-    // --------------------------------------------------
-
-    const memoryText = memories
-      .slice(0, 10)
-      .map((memory, index) => {
-        return `
-MEMORY ${index + 1}
-
-Parent's description:
-${memory.description || memory.memory || "No description provided."}
-
-Photo filename:
-${memory.fileName || memory.name || "Unknown"}
-`;
-      })
-      .join("\n");
-
-    // --------------------------------------------------
-    // CREATE STORY PROMPT
-    // --------------------------------------------------
-
-    const prompt = `
-You are the lead children's book author for
-"Once Upon My Child."
-
-You create premium personalized children's
-memory books using real family memories.
-
-The child must feel like the hero of their own story.
-
-IMPORTANT:
-
-- Use the child's real name.
-- Respect the child's age.
-- Make the child the central character.
-- Use their personality naturally.
-- Include their favorite things naturally.
-- Turn the memories into one connected story.
-- Do not simply caption the memories.
-- Do not simply list the memories.
-- Do not invent sensitive personal information.
-- Do not invent major life events.
-- Do not use frightening, violent or inappropriate content.
-- Keep the story warm, imaginative and emotionally safe.
-- Use age-appropriate language.
-- Create a story a parent would genuinely enjoy reading at bedtime.
-- Make the ending emotionally satisfying.
-- Weave the requested lesson naturally into the story.
-
-CHILD INFORMATION
-
-Name:
-${child.name}
-
-Age:
-${child.age}
-
-Personality:
-${child.personality || "curious, kind and adventurous"}
-
-Favorite things:
-${child.favorites || "things that make the child happy"}
+    // Convert actual photos into AI-readable image data.
+    const memories =
+      await preparePhotosForAI();
 
 
-STORY PREFERENCES
-
-Story type:
-${story.type || "Magical Adventure"}
-
-Setting:
-${story.setting || "a magical world"}
-
-Tone:
-${story.tone || "warm and loving"}
-
-Lesson:
-${story.lesson || "believing in yourself"}
-
-Length:
-${story.length || "medium"}
+    createStoryBtn.textContent =
+      "✨ Creating your story...";
 
 
-REAL FAMILY MEMORIES
+    const requestData = {
 
-${memoryText}
+      child: state.child,
 
+      story: state.story,
 
-CREATE A 10-PAGE CHILDREN'S PICTURE BOOK STORY.
+      memories: memories
 
-Structure:
+    };
 
-Page 1:
-Opening / dedication
-
-Page 2:
-Introduce the child
-
-Page 3:
-Begin the adventure
-
-Page 4:
-Develop the adventure using a real memory
-
-Page 5:
-Discovery and wonder
-
-Page 6:
-A gentle challenge
-
-Page 7:
-Magical or emotional turning point
-
-Page 8:
-Resolution
-
-Page 9:
-Emotional payoff
-
-Page 10:
-Warm ending / goodnight
-
-Each page should contain approximately
-60-120 words depending on the child's age.
-
-Return ONLY valid JSON.
-
-Use exactly this structure:
-
-{
-  "title": "Story title",
-  "subtitle": "Short subtitle",
-  "dedication": "Short loving dedication",
-  "pages": [
-    {
-      "page": 1,
-      "type": "dedication",
-      "heading": "Page heading",
-      "text": "Story text"
-    },
-    {
-      "page": 2,
-      "type": "introduction",
-      "heading": "Page heading",
-      "text": "Story text"
-    },
-    {
-      "page": 3,
-      "type": "adventure",
-      "heading": "Page heading",
-      "text": "Story text"
-    },
-    {
-      "page": 4,
-      "type": "adventure",
-      "heading": "Page heading",
-      "text": "Story text"
-    },
-    {
-      "page": 5,
-      "type": "discovery",
-      "heading": "Page heading",
-      "text": "Story text"
-    },
-    {
-      "page": 6,
-      "type": "challenge",
-      "heading": "Page heading",
-      "text": "Story text"
-    },
-    {
-      "page": 7,
-      "type": "magical",
-      "heading": "Page heading",
-      "text": "Story text"
-    },
-    {
-      "page": 8,
-      "type": "solution",
-      "heading": "Page heading",
-      "text": "Story text"
-    },
-    {
-      "page": 9,
-      "type": "resolution",
-      "heading": "Page heading",
-      "text": "Story text"
-    },
-    {
-      "page": 10,
-      "type": "ending",
-      "heading": "Page heading",
-      "text": "Story text"
-    }
-  ],
-  "ending": "Warm final ending"
-}
-`;
-
-    // --------------------------------------------------
-    // CALL OPENAI
-    // --------------------------------------------------
 
     const response = await fetch(
-      "https://api.openai.com/v1/responses",
+      "/api/generate-story",
       {
         method: "POST",
 
         headers: {
-          "Content-Type": "application/json",
-          "Authorization":
-            `Bearer ${process.env.OPENAI_API_KEY}`
+          "Content-Type": "application/json"
         },
 
-        body: JSON.stringify({
-          model: "gpt-5.6-luna",
-
-          input: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "input_text",
-                  text: prompt
-                }
-              ]
-            }
-          ],
-
-          max_output_tokens: 6000
-        })
+        body: JSON.stringify(requestData)
       }
     );
 
-    // --------------------------------------------------
-    // HANDLE OPENAI ERROR
-    // --------------------------------------------------
 
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      console.error(
-        "OpenAI API error:",
-        errorText
-      );
-
-      return res.status(500).json({
-        error: "AI story generation failed."
-      });
-    }
-
-    // --------------------------------------------------
-    // READ OPENAI RESPONSE
-    // --------------------------------------------------
-
-    const data = await response.json();
-
-    const output =
-      data.output_text ||
-      data.output
-        ?.flatMap(item => item.content || [])
-        ?.find(item => item.type === "output_text")
-        ?.text ||
-      "";
-
-    if (!output) {
-      console.error(
-        "OpenAI returned no story.",
-        data
-      );
-
-      return res.status(500).json({
-        error: "The AI returned an empty story."
-      });
-    }
-
-    // --------------------------------------------------
-    // CLEAN RESPONSE
-    // --------------------------------------------------
-
-    let cleanedOutput = output.trim();
-
-    if (cleanedOutput.startsWith("```json")) {
-      cleanedOutput = cleanedOutput
-        .replace(/^```json\s*/, "")
-        .replace(/\s*```$/, "");
-    }
-
-    if (cleanedOutput.startsWith("```")) {
-      cleanedOutput = cleanedOutput
-        .replace(/^```\s*/, "")
-        .replace(/\s*```$/, "");
-    }
-
-    // --------------------------------------------------
-    // PARSE JSON
-    // --------------------------------------------------
-
-    let storyData;
+    let data;
 
     try {
-      storyData = JSON.parse(cleanedOutput);
-    } catch (parseError) {
-      console.error(
-        "JSON parsing failed:",
-        cleanedOutput
+      data = await response.json();
+    } catch {
+      throw new Error(
+        "The server returned an invalid response."
+      );
+    }
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        "The AI story engine could not create the story."
       );
 
-      return res.status(500).json({
-        error: "The AI returned an invalid story format."
-      });
     }
 
-    // --------------------------------------------------
-    // FINAL VALIDATION
-    // --------------------------------------------------
 
-    if (
-      !storyData.title ||
-      !Array.isArray(storyData.pages) ||
-      storyData.pages.length !== 10
-    ) {
-      return res.status(500).json({
-        error: "The AI returned an incomplete story."
-      });
+    if (!data.story) {
+
+      throw new Error(
+        "The AI returned an unexpected response."
+      );
+
     }
 
-    // --------------------------------------------------
-    // RETURN STORY
-    // --------------------------------------------------
 
-    return res.status(200).json({
-      story: storyData
-    });
+    state.generatedStory =
+      data.story;
 
-  } catch (error) {
+
+    renderAIStory();
+
+
+    state.currentStep = 3;
+
+    updateStepUI();
+
+  }
+
+
+  catch (error) {
+
     console.error(
-      "Story generation error:",
+      "AI STORY ERROR:",
       error
     );
 
-    return res.status(500).json({
-      error: "Something went wrong while creating the story."
-    });
+
+    alert(
+      "We couldn't create the story yet.\n\n" +
+      error.message
+    );
+
+  }
+
+
+  finally {
+
+    createStoryBtn.disabled = false;
+
+    createStoryBtn.textContent =
+      originalText ||
+      "Create My Story";
+
   }
 }
+
+
+// ===============================
+// RENDER AI STORY
+// ===============================
+
+function renderAIStory() {
+
+  const story =
+    state.generatedStory;
+
+  if (!story) return;
+
+
+  // TITLE
+
+  if (storyTitle) {
+
+    storyTitle.textContent =
+      story.title ||
+      "Our Story";
+
+  }
+
+
+  // SUBTITLE
+
+  if (storySubtitle) {
+
+    storySubtitle.textContent =
+      story.subtitle ||
+      "";
+
+  }
+
+
+  // CHILD NAME
+
+  if (coverChildName) {
+
+    coverChildName.textContent =
+      state.child.name;
+
+  }
+
+
+  // STORY TYPE
+
+  if (coverStoryType) {
+
+    coverStoryType.textContent =
+      state.story.type;
+
+  }
+
+
+  // COVER PHOTO
+
+  if (
+    coverPhotoWrap &&
+    state.photos.length > 0
+  ) {
+
+    coverPhotoWrap.innerHTML = `
+      <img
+        src="${state.photos[0].url}"
+        alt="${escapeHtml(state.child.name)}"
+      >
+    `;
+
+  }
+
+
+  // STORY PAGES
+
+  if (generatedPages) {
+
+    generatedPages.innerHTML = "";
+
+
+    // DEDICATION
+
+    if (story.dedication) {
+
+      const dedication =
+        document.createElement("div");
+
+      dedication.className =
+        "story-page";
+
+      dedication.innerHTML = `
+        <div class="story-page-content">
+
+          <div class="story-page-label">
+            A Special Dedication
+          </div>
+
+          <p class="story-text">
+            ${escapeHtml(
+              story.dedication
+            )}
+          </p>
+
+        </div>
+      `;
+
+      generatedPages.appendChild(
+        dedication
+      );
+    }
+
+
+    // AI PAGES
+
+    (story.pages || []).forEach(
+      (page, index) => {
+
+        const pageElement =
+          document.createElement("div");
+
+        pageElement.className =
+          "story-page";
+
+
+        let imageHTML = "";
+
+
+        let photoIndex =
+          typeof page.photoIndex === "number"
+            ? page.photoIndex
+            : index;
+
+
+        if (
+          state.photos.length > 0 &&
+          photoIndex >= 0 &&
+          photoIndex < state.photos.length
+        ) {
+
+          imageHTML = `
+            <div class="story-page-image">
+
+              <img
+                src="${state.photos[photoIndex].url}"
+                alt="Memory ${photoIndex + 1}"
+              >
+
+            </div>
+          `;
+
+        }
+
+
+        pageElement.innerHTML = `
+
+          ${imageHTML}
+
+          <div class="story-page-content">
+
+            <div class="story-page-label">
+              ${escapeHtml(
+                page.heading ||
+                `Chapter ${index + 1}`
+              )}
+            </div>
+
+            <p class="story-text">
+              ${escapeHtml(
+                page.text ||
+                ""
+              )}
+            </p>
+
+          </div>
+
+        `;
+
+
+        generatedPages.appendChild(
+          pageElement
+        );
+
+      }
+    );
+
+  }
+
+
+  // ENDING
+
+  if (endingText) {
+
+    endingText.textContent =
+      story.ending ||
+      `And that was the beginning of another wonderful adventure for ${state.child.name}.`;
+
+  }
+}
+
+
+// ===============================
+// BUTTONS
+// ===============================
+
+if (continueToPhotos) {
+
+  continueToPhotos.addEventListener(
+    "click",
+    () => {
+
+      collectChildDetails();
+
+      state.currentStep = 2;
+
+      updateStepUI();
+
+    }
+  );
+
+}
+
+
+if (backToDetails) {
+
+  backToDetails.addEventListener(
+    "click",
+    () => {
+
+      state.currentStep = 1;
+
+      updateStepUI();
+
+    }
+  );
+
+}
+
+
+if (createStoryBtn) {
+
+  createStoryBtn.addEventListener(
+    "click",
+    generateAIStory
+  );
+
+}
+
+
+if (editStoryBtn) {
+
+  editStoryBtn.addEventListener(
+    "click",
+    () => {
+
+      state.currentStep = 1;
+
+      updateStepUI();
+
+    }
+  );
+
+}
+
+
+if (startOverBtn) {
+
+  startOverBtn.addEventListener(
+    "click",
+    () => {
+
+      location.reload();
+
+    }
+  );
+
+}
+
+
+if (printStoryBtn) {
+
+  printStoryBtn.addEventListener(
+    "click",
+    () => {
+
+      window.print();
+
+    }
+  );
+
+}
+
+
+// ===============================
+// ADD MEMORY BUTTON
+// ===============================
+
+if (addMemoryBtn) {
+
+  addMemoryBtn.addEventListener(
+    "click",
+    () => {
+
+      if (photoInput) {
+        photoInput.click();
+      }
+
+    }
+  );
+
+}
+
+
+// ===============================
+// SECURITY / HTML ESCAPING
+// ===============================
+
+function escapeHtml(value) {
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  return String(value)
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+}
+```
