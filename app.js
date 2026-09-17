@@ -1,4 +1,3 @@
-```javascript
 const state = {
   currentStep: 1,
 
@@ -64,14 +63,21 @@ const stepLabel = document.getElementById("stepLabel");
 
 
 // ===============================
-// INITIAL SETUP
+// INITIALIZE APP
 // ===============================
 
-document.addEventListener("DOMContentLoaded", () => {
+function initializeApp() {
   setupChoiceCards();
   setupPhotoUpload();
+  setupButtons();
   updateStepUI();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeApp);
+} else {
+  initializeApp();
+}
 
 
 // ===============================
@@ -82,31 +88,42 @@ function setupChoiceCards() {
   const cards = document.querySelectorAll(".choice-card");
 
   cards.forEach(card => {
-    card.addEventListener("click", () => {
+    card.addEventListener("click", function () {
+      const group = card.closest("[data-choice]");
 
-      const group = card.parentElement;
+      if (!group) {
+        return;
+      }
 
-      group.querySelectorAll(".choice-card").forEach(c => {
-        c.classList.remove("selected");
+      const groupCards = group.querySelectorAll(".choice-card");
+
+      groupCards.forEach(item => {
+        item.classList.remove("selected");
+        item.setAttribute("aria-selected", "false");
       });
 
       card.classList.add("selected");
+      card.setAttribute("aria-selected", "true");
 
-      const value = card.dataset.value || card.textContent.trim();
+      const value =
+        card.dataset.value ||
+        card.textContent.trim();
 
-      if (group.dataset.choice === "story-type") {
+      const choiceType = group.dataset.choice;
+
+      if (choiceType === "story-type") {
         state.story.type = value;
       }
 
-      if (group.dataset.choice === "setting") {
+      if (choiceType === "setting") {
         state.story.setting = value;
       }
 
-      if (group.dataset.choice === "length") {
+      if (choiceType === "length") {
         state.story.length = value;
       }
 
-      if (group.dataset.choice === "tone") {
+      if (choiceType === "tone") {
         state.story.tone = value;
       }
     });
@@ -119,7 +136,6 @@ function setupChoiceCards() {
 // ===============================
 
 function updateStepUI() {
-
   const steps = [
     document.getElementById("step1"),
     document.getElementById("step2"),
@@ -127,7 +143,9 @@ function updateStepUI() {
   ];
 
   steps.forEach((step, index) => {
-    if (!step) return;
+    if (!step) {
+      return;
+    }
 
     step.classList.toggle(
       "active",
@@ -137,12 +155,12 @@ function updateStepUI() {
 
   if (progressBar) {
     progressBar.style.width =
-      `${(state.currentStep / 3) * 100}%`;
+      ((state.currentStep / 3) * 100) + "%";
   }
 
   if (stepLabel) {
     stepLabel.textContent =
-      `Step ${state.currentStep} of 3`;
+      "Step " + state.currentStep + " of 3";
   }
 
   window.scrollTo({
@@ -157,26 +175,36 @@ function updateStepUI() {
 // ===============================
 
 function collectChildDetails() {
-
-  state.child.name = childName?.value.trim() || "";
-  state.child.age = childAge?.value.trim() || "";
-  state.child.personality = personality?.value.trim() || "";
-  state.child.favorites = favorites?.value.trim() || "";
-
-  state.story.setting =
-    setting?.value.trim() || state.story.setting;
-
-  state.story.lesson =
-    lesson?.value.trim() || "";
-
-  if (storyLength) {
-    state.story.length =
-      storyLength.value || state.story.length;
+  if (childName) {
+    state.child.name = childName.value.trim();
   }
 
-  if (storyTone) {
-    state.story.tone =
-      storyTone.value || state.story.tone;
+  if (childAge) {
+    state.child.age = childAge.value.trim();
+  }
+
+  if (personality) {
+    state.child.personality = personality.value.trim();
+  }
+
+  if (favorites) {
+    state.child.favorites = favorites.value.trim();
+  }
+
+  if (setting && setting.value.trim()) {
+    state.story.setting = setting.value.trim();
+  }
+
+  if (lesson) {
+    state.story.lesson = lesson.value.trim();
+  }
+
+  if (storyLength && storyLength.value) {
+    state.story.length = storyLength.value;
+  }
+
+  if (storyTone && storyTone.value) {
+    state.story.tone = storyTone.value;
   }
 }
 
@@ -186,28 +214,25 @@ function collectChildDetails() {
 // ===============================
 
 function setupPhotoUpload() {
-
   if (photoInput) {
-    photoInput.addEventListener("change", event => {
+    photoInput.addEventListener("change", function (event) {
       addPhotos(event.target.files);
 
-      // Allows the same file to be selected again later.
       event.target.value = "";
     });
   }
 
   if (dropZone) {
-
-    dropZone.addEventListener("dragover", event => {
+    dropZone.addEventListener("dragover", function (event) {
       event.preventDefault();
       dropZone.classList.add("dragging");
     });
 
-    dropZone.addEventListener("dragleave", () => {
+    dropZone.addEventListener("dragleave", function () {
       dropZone.classList.remove("dragging");
     });
 
-    dropZone.addEventListener("drop", event => {
+    dropZone.addEventListener("drop", function (event) {
       event.preventDefault();
 
       dropZone.classList.remove("dragging");
@@ -219,11 +244,11 @@ function setupPhotoUpload() {
 
 
 function addPhotos(files) {
+  if (!files) {
+    return;
+  }
 
-  if (!files) return;
-
-  Array.from(files).forEach(file => {
-
+  Array.from(files).forEach(function (file) {
     if (!file.type.startsWith("image/")) {
       return;
     }
@@ -242,14 +267,18 @@ function addPhotos(files) {
 }
 
 
-function renderPhotos() {
+// ===============================
+// RENDER PHOTOS
+// ===============================
 
-  if (!photoList) return;
+function renderPhotos() {
+  if (!photoList) {
+    return;
+  }
 
   photoList.innerHTML = "";
 
-  state.photos.forEach((photo, index) => {
-
+  state.photos.forEach(function (photo, index) {
     const item = document.createElement("div");
 
     item.className = "photo-item";
@@ -306,41 +335,52 @@ function renderPhotos() {
     photoList.appendChild(item);
   });
 
+  setupPhotoItemControls();
 
-  // MEMORY INPUTS
+  if (photoCount) {
+    photoCount.textContent =
+      state.photos.length +
+      " photo" +
+      (state.photos.length === 1 ? "" : "s");
+  }
+}
 
-  document.querySelectorAll(".memory-input").forEach(input => {
 
-    input.addEventListener("input", event => {
+// ===============================
+// PHOTO CONTROLS
+// ===============================
 
+function setupPhotoItemControls() {
+  const memoryInputs =
+    document.querySelectorAll(".memory-input");
+
+  memoryInputs.forEach(function (input) {
+    input.addEventListener("input", function (event) {
       const id = Number(event.target.dataset.photoId);
 
-      const photo = state.photos.find(
-        p => Number(p.id) === id
-      );
+      const photo = state.photos.find(function (item) {
+        return Number(item.id) === id;
+      });
 
       if (photo) {
         photo.memory = event.target.value;
       }
     });
-
   });
 
 
-  // DELETE
+  const deleteButtons =
+    document.querySelectorAll(".photo-delete");
 
-  document.querySelectorAll(".photo-delete").forEach(button => {
-
-    button.addEventListener("click", () => {
-
+  deleteButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
       const id = Number(button.dataset.id);
 
-      const index = state.photos.findIndex(
-        p => Number(p.id) === id
-      );
+      const index = state.photos.findIndex(function (photo) {
+        return Number(photo.id) === id;
+      });
 
       if (index !== -1) {
-
         URL.revokeObjectURL(
           state.photos[index].url
         );
@@ -349,58 +389,49 @@ function renderPhotos() {
 
         renderPhotos();
       }
-
     });
-
   });
 
 
-  // MOVE UP
+  const upButtons =
+    document.querySelectorAll(".photo-up");
 
-  document.querySelectorAll(".photo-up").forEach(button => {
-
-    button.addEventListener("click", () => {
-
+  upButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
       movePhoto(
         Number(button.dataset.id),
         -1
       );
-
     });
-
   });
 
 
-  // MOVE DOWN
+  const downButtons =
+    document.querySelectorAll(".photo-down");
 
-  document.querySelectorAll(".photo-down").forEach(button => {
-
-    button.addEventListener("click", () => {
-
+  downButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
       movePhoto(
         Number(button.dataset.id),
         1
       );
-
     });
-
   });
-
-
-  if (photoCount) {
-    photoCount.textContent =
-      `${state.photos.length} photo${state.photos.length === 1 ? "" : "s"}`;
-  }
 }
 
 
+// ===============================
+// MOVE PHOTO
+// ===============================
+
 function movePhoto(id, direction) {
+  const index = state.photos.findIndex(function (photo) {
+    return Number(photo.id) === id;
+  });
 
-  const index = state.photos.findIndex(
-    p => Number(p.id) === id
-  );
-
-  if (index === -1) return;
+  if (index === -1) {
+    return;
+  }
 
   const newIndex = index + direction;
 
@@ -428,35 +459,30 @@ function movePhoto(id, direction) {
 // ===============================
 
 function compressImage(file) {
-
-  return new Promise((resolve, reject) => {
-
+  return new Promise(function (resolve, reject) {
     const reader = new FileReader();
 
-    reader.onload = event => {
-
+    reader.onload = function (event) {
       const image = new Image();
 
-      image.onload = () => {
-
+      image.onload = function () {
         const maxDimension = 1600;
 
         let width = image.width;
         let height = image.height;
 
-        if (width > maxDimension || height > maxDimension) {
-
+        if (
+          width > maxDimension ||
+          height > maxDimension
+        ) {
           if (width > height) {
-
             height =
               Math.round(
                 height * maxDimension / width
               );
 
             width = maxDimension;
-
           } else {
-
             width =
               Math.round(
                 width * maxDimension / height
@@ -465,7 +491,6 @@ function compressImage(file) {
             height = maxDimension;
           }
         }
-
 
         const canvas =
           document.createElement("canvas");
@@ -476,6 +501,16 @@ function compressImage(file) {
         const context =
           canvas.getContext("2d");
 
+        if (!context) {
+          reject(
+            new Error(
+              "Could not prepare the photo."
+            )
+          );
+
+          return;
+        }
+
         context.drawImage(
           image,
           0,
@@ -484,8 +519,6 @@ function compressImage(file) {
           height
         );
 
-
-        // JPEG keeps the request size manageable.
         const dataUrl =
           canvas.toDataURL(
             "image/jpeg",
@@ -495,8 +528,7 @@ function compressImage(file) {
         resolve(dataUrl);
       };
 
-
-      image.onerror = () => {
+      image.onerror = function () {
         reject(
           new Error(
             "One of the uploaded photos could not be processed."
@@ -504,19 +536,16 @@ function compressImage(file) {
         );
       };
 
-
       image.src = event.target.result;
     };
 
-
-    reader.onerror = () => {
+    reader.onerror = function () {
       reject(
         new Error(
           "Could not read one of the uploaded photos."
         )
       );
     };
-
 
     reader.readAsDataURL(file);
   });
@@ -528,7 +557,6 @@ function compressImage(file) {
 // ===============================
 
 async function preparePhotosForAI() {
-
   const preparedPhotos = [];
 
   for (
@@ -536,25 +564,19 @@ async function preparePhotosForAI() {
     index < state.photos.length;
     index++
   ) {
-
     const photo = state.photos[index];
 
     const imageData =
       await compressImage(photo.file);
 
     preparedPhotos.push({
-
       index: index,
-
-      memory:
-        photo.memory || "",
-
+      memory: photo.memory || "",
       fileName:
-        photo.file?.name || "",
-
-      image:
-        imageData
-
+        photo.file && photo.file.name
+          ? photo.file.name
+          : "",
+      image: imageData
     });
   }
 
@@ -567,7 +589,6 @@ async function preparePhotosForAI() {
 // ===============================
 
 async function generateAIStory() {
-
   collectChildDetails();
 
   if (!state.child.name) {
@@ -585,36 +606,30 @@ async function generateAIStory() {
     return;
   }
 
+  if (!createStoryBtn) {
+    return;
+  }
+
   const originalText =
     createStoryBtn.textContent;
 
   createStoryBtn.disabled = true;
 
   createStoryBtn.textContent =
-    "✨ Preparing your memories...";
-
+    "Preparing your memories...";
 
   try {
-
-    // Convert actual photos into AI-readable image data.
     const memories =
       await preparePhotosForAI();
 
-
     createStoryBtn.textContent =
-      "✨ Creating your story...";
-
+      "Creating your story...";
 
     const requestData = {
-
       child: state.child,
-
       story: state.story,
-
       memories: memories
-
     };
-
 
     const response = await fetch(
       "/api/generate-story",
@@ -629,75 +644,55 @@ async function generateAIStory() {
       }
     );
 
-
     let data;
 
     try {
       data = await response.json();
-    } catch {
+    } catch (jsonError) {
       throw new Error(
         "The server returned an invalid response."
       );
     }
 
-
     if (!response.ok) {
-
       throw new Error(
         data.error ||
         "The AI story engine could not create the story."
       );
-
     }
 
-
     if (!data.story) {
-
       throw new Error(
         "The AI returned an unexpected response."
       );
-
     }
-
 
     state.generatedStory =
       data.story;
 
-
     renderAIStory();
-
 
     state.currentStep = 3;
 
     updateStepUI();
 
-  }
-
-
-  catch (error) {
-
+  } catch (error) {
     console.error(
       "AI STORY ERROR:",
       error
     );
-
 
     alert(
       "We couldn't create the story yet.\n\n" +
       error.message
     );
 
-  }
-
-
-  finally {
-
+  } finally {
     createStoryBtn.disabled = false;
 
     createStoryBtn.textContent =
       originalText ||
       "Create My Story";
-
   }
 }
 
@@ -707,83 +702,51 @@ async function generateAIStory() {
 // ===============================
 
 function renderAIStory() {
-
   const story =
     state.generatedStory;
 
-  if (!story) return;
-
-
-  // TITLE
+  if (!story) {
+    return;
+  }
 
   if (storyTitle) {
-
     storyTitle.textContent =
       story.title ||
       "Our Story";
-
   }
 
-
-  // SUBTITLE
-
   if (storySubtitle) {
-
     storySubtitle.textContent =
       story.subtitle ||
       "";
-
   }
-
-
-  // CHILD NAME
 
   if (coverChildName) {
-
     coverChildName.textContent =
       state.child.name;
-
   }
-
-
-  // STORY TYPE
 
   if (coverStoryType) {
-
     coverStoryType.textContent =
       state.story.type;
-
   }
-
-
-  // COVER PHOTO
 
   if (
     coverPhotoWrap &&
     state.photos.length > 0
   ) {
-
     coverPhotoWrap.innerHTML = `
       <img
         src="${state.photos[0].url}"
         alt="${escapeHtml(state.child.name)}"
       >
     `;
-
   }
 
-
-  // STORY PAGES
-
   if (generatedPages) {
-
     generatedPages.innerHTML = "";
 
-
-    // DEDICATION
-
     if (story.dedication) {
-
       const dedication =
         document.createElement("div");
 
@@ -798,9 +761,7 @@ function renderAIStory() {
           </div>
 
           <p class="story-text">
-            ${escapeHtml(
-              story.dedication
-            )}
+            ${escapeHtml(story.dedication)}
           </p>
 
         </div>
@@ -811,91 +772,76 @@ function renderAIStory() {
       );
     }
 
+    const pages =
+      Array.isArray(story.pages)
+        ? story.pages
+        : [];
 
-    // AI PAGES
+    pages.forEach(function (page, index) {
+      const pageElement =
+        document.createElement("div");
 
-    (story.pages || []).forEach(
-      (page, index) => {
+      pageElement.className =
+        "story-page";
 
-        const pageElement =
-          document.createElement("div");
+      let photoIndex =
+        typeof page.photoIndex === "number"
+          ? page.photoIndex
+          : index;
 
-        pageElement.className =
-          "story-page";
+      let imageHTML = "";
 
+      if (
+        state.photos.length > 0 &&
+        photoIndex >= 0 &&
+        photoIndex < state.photos.length
+      ) {
+        imageHTML = `
+          <div class="story-page-image">
 
-        let imageHTML = "";
-
-
-        let photoIndex =
-          typeof page.photoIndex === "number"
-            ? page.photoIndex
-            : index;
-
-
-        if (
-          state.photos.length > 0 &&
-          photoIndex >= 0 &&
-          photoIndex < state.photos.length
-        ) {
-
-          imageHTML = `
-            <div class="story-page-image">
-
-              <img
-                src="${state.photos[photoIndex].url}"
-                alt="Memory ${photoIndex + 1}"
-              >
-
-            </div>
-          `;
-
-        }
-
-
-        pageElement.innerHTML = `
-
-          ${imageHTML}
-
-          <div class="story-page-content">
-
-            <div class="story-page-label">
-              ${escapeHtml(
-                page.heading ||
-                `Chapter ${index + 1}`
-              )}
-            </div>
-
-            <p class="story-text">
-              ${escapeHtml(
-                page.text ||
-                ""
-              )}
-            </p>
+            <img
+              src="${state.photos[photoIndex].url}"
+              alt="Memory ${photoIndex + 1}"
+            >
 
           </div>
-
         `;
-
-
-        generatedPages.appendChild(
-          pageElement
-        );
-
       }
-    );
 
+      pageElement.innerHTML = `
+        ${imageHTML}
+
+        <div class="story-page-content">
+
+          <div class="story-page-label">
+            ${escapeHtml(
+              page.heading ||
+              "Chapter " + (index + 1)
+            )}
+          </div>
+
+          <p class="story-text">
+            ${escapeHtml(
+              page.text ||
+              ""
+            )}
+          </p>
+
+        </div>
+      `;
+
+      generatedPages.appendChild(
+        pageElement
+      );
+    });
   }
 
-
-  // ENDING
-
   if (endingText) {
-
     endingText.textContent =
       story.ending ||
-      `And that was the beginning of another wonderful adventure for ${state.child.name}.`;
-
+      "And that was the beginning of another wonderful adventure for " +
+      state.child.name +
+      ".";
   }
 }
 
@@ -904,111 +850,110 @@ function renderAIStory() {
 // BUTTONS
 // ===============================
 
-if (continueToPhotos) {
+function setupButtons() {
 
-  continueToPhotos.addEventListener(
-    "click",
-    () => {
+  if (continueToPhotos) {
+    continueToPhotos.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
 
-      collectChildDetails();
+        collectChildDetails();
 
-      state.currentStep = 2;
+        if (!state.child.name) {
+          alert("Please enter the child's name.");
+          return;
+        }
 
-      updateStepUI();
+        if (!state.child.age) {
+          alert("Please enter the child's age.");
+          return;
+        }
 
-    }
-  );
+        state.currentStep = 2;
 
-}
-
-
-if (backToDetails) {
-
-  backToDetails.addEventListener(
-    "click",
-    () => {
-
-      state.currentStep = 1;
-
-      updateStepUI();
-
-    }
-  );
-
-}
-
-
-if (createStoryBtn) {
-
-  createStoryBtn.addEventListener(
-    "click",
-    generateAIStory
-  );
-
-}
-
-
-if (editStoryBtn) {
-
-  editStoryBtn.addEventListener(
-    "click",
-    () => {
-
-      state.currentStep = 1;
-
-      updateStepUI();
-
-    }
-  );
-
-}
-
-
-if (startOverBtn) {
-
-  startOverBtn.addEventListener(
-    "click",
-    () => {
-
-      location.reload();
-
-    }
-  );
-
-}
-
-
-if (printStoryBtn) {
-
-  printStoryBtn.addEventListener(
-    "click",
-    () => {
-
-      window.print();
-
-    }
-  );
-
-}
-
-
-// ===============================
-// ADD MEMORY BUTTON
-// ===============================
-
-if (addMemoryBtn) {
-
-  addMemoryBtn.addEventListener(
-    "click",
-    () => {
-
-      if (photoInput) {
-        photoInput.click();
+        updateStepUI();
       }
+    );
+  }
 
-    }
-  );
 
+  if (backToDetails) {
+    backToDetails.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        state.currentStep = 1;
+
+        updateStepUI();
+      }
+    );
+  }
+
+
+  if (createStoryBtn) {
+    createStoryBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        generateAIStory();
+      }
+    );
+  }
+
+
+  if (editStoryBtn) {
+    editStoryBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        state.currentStep = 1;
+
+        updateStepUI();
+      }
+    );
+  }
+
+
+  if (startOverBtn) {
+    startOverBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        location.reload();
+      }
+    );
+  }
+
+
+  if (printStoryBtn) {
+    printStoryBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        window.print();
+      }
+    );
+  }
+
+
+  if (addMemoryBtn) {
+    addMemoryBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        if (photoInput) {
+          photoInput.click();
+        }
+      }
+    );
+  }
 }
 
 
@@ -1017,7 +962,6 @@ if (addMemoryBtn) {
 // ===============================
 
 function escapeHtml(value) {
-
   if (
     value === null ||
     value === undefined
@@ -1026,25 +970,9 @@ function escapeHtml(value) {
   }
 
   return String(value)
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-    .replaceAll(
-      "'",
-      "&#039;"
-    );
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
-```
