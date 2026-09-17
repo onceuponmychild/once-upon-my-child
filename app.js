@@ -1,16 +1,14 @@
 ```javascript
 "use strict";
 
-const state = {
+var state = {
   currentStep: 1,
-
   child: {
     name: "",
     age: "",
     personality: "",
     favorites: ""
   },
-
   story: {
     type: "Magical Adventure",
     setting: "",
@@ -18,14 +16,13 @@ const state = {
     length: "Medium",
     tone: "Warm & loving"
   },
-
   photos: [],
   generatedStory: null
 };
 
-
-document.addEventListener("DOMContentLoaded", initializeApp);
-
+document.addEventListener("DOMContentLoaded", function () {
+  initializeApp();
+});
 
 function initializeApp() {
   setupAdventureCards();
@@ -34,26 +31,20 @@ function initializeApp() {
   setupPhotoUpload();
   setupPhotoButtons();
   setupStoryActions();
-
   updateStep();
 
   console.log("Once Upon My Child initialized successfully.");
 }
 
 
-/* =========================================================
-   ADVENTURE CARDS
-========================================================= */
+/* ADVENTURE CARDS */
 
 function setupAdventureCards() {
-  const cards = document.querySelectorAll(
-    "#storyTypeChoices .choice-card"
-  );
+  var cards = document.querySelectorAll("#storyTypeChoices .choice-card");
 
-  cards.forEach(function(card) {
-    card.addEventListener("click", function() {
-
-      cards.forEach(function(item) {
+  cards.forEach(function (card) {
+    card.addEventListener("click", function () {
+      cards.forEach(function (item) {
         item.classList.remove("selected");
         item.setAttribute("aria-selected", "false");
       });
@@ -62,8 +53,7 @@ function setupAdventureCards() {
       card.setAttribute("aria-selected", "true");
 
       state.story.type =
-        card.getAttribute("data-value") ||
-        "Magical Adventure";
+        card.getAttribute("data-value") || "Magical Adventure";
 
       console.log("Adventure selected:", state.story.type);
     });
@@ -71,21 +61,14 @@ function setupAdventureCards() {
 }
 
 
-/* =========================================================
-   NAVIGATION
-========================================================= */
+/* NAVIGATION */
 
 function setupNavigation() {
-
-  const continueButton =
-    document.getElementById("continueToPhotos");
-
-  const backButton =
-    document.getElementById("backToDetails");
+  var continueButton = document.getElementById("continueToPhotos");
+  var backButton = document.getElementById("backToDetails");
 
   if (continueButton) {
-    continueButton.addEventListener("click", function() {
-
+    continueButton.addEventListener("click", function () {
       if (!collectChildDetails()) {
         return;
       }
@@ -99,40 +82,33 @@ function setupNavigation() {
   }
 
   if (backButton) {
-    backButton.addEventListener("click", function() {
+    backButton.addEventListener("click", function () {
       goToStep(1);
     });
   }
 }
-
 
 function goToStep(step) {
   state.currentStep = step;
   updateStep();
 }
 
-
 function updateStep() {
+  var screens = document.querySelectorAll(".screen");
 
-  const screens =
-    document.querySelectorAll(".screen");
-
-  screens.forEach(function(screen) {
+  screens.forEach(function (screen) {
     screen.classList.remove("active");
   });
 
-  const currentScreen =
+  var currentScreen =
     document.getElementById("step" + state.currentStep);
 
   if (currentScreen) {
     currentScreen.classList.add("active");
   }
 
-  const stepLabel =
-    document.getElementById("stepLabel");
-
-  const progressBar =
-    document.getElementById("progressBar");
+  var stepLabel = document.getElementById("stepLabel");
+  var progressBar = document.getElementById("progressBar");
 
   if (stepLabel) {
     stepLabel.textContent =
@@ -140,7 +116,7 @@ function updateStep() {
   }
 
   if (progressBar) {
-    const percentage =
+    var percentage =
       ((state.currentStep - 1) / 2) * 100;
 
     progressBar.style.width =
@@ -154,23 +130,13 @@ function updateStep() {
 }
 
 
-/* =========================================================
-   CHILD DETAILS
-========================================================= */
+/* CHILD DETAILS */
 
 function collectChildDetails() {
-
-  const nameInput =
-    document.getElementById("childName");
-
-  const ageInput =
-    document.getElementById("childAge");
-
-  const personalityInput =
-    document.getElementById("personality");
-
-  const favoritesInput =
-    document.getElementById("favorites");
+  var nameInput = document.getElementById("childName");
+  var ageInput = document.getElementById("childAge");
+  var personalityInput = document.getElementById("personality");
+  var favoritesInput = document.getElementById("favorites");
 
   state.child.name =
     nameInput ? nameInput.value.trim() : "";
@@ -179,14 +145,10 @@ function collectChildDetails() {
     ageInput ? ageInput.value : "";
 
   state.child.personality =
-    personalityInput
-      ? personalityInput.value.trim()
-      : "";
+    personalityInput ? personalityInput.value.trim() : "";
 
   state.child.favorites =
-    favoritesInput
-      ? favoritesInput.value.trim()
-      : "";
+    favoritesInput ? favoritesInput.value.trim() : "";
 
   if (!state.child.name) {
     showMessage("Please enter your child's name.");
@@ -202,27 +164,17 @@ function collectChildDetails() {
 }
 
 
-/* =========================================================
-   STORY PREFERENCES
-========================================================= */
+/* STORY PREFERENCES */
 
 function collectStoryPreferences() {
-
-  const settingInput =
-    document.getElementById("setting");
-
-  const lessonInput =
-    document.getElementById("lesson");
+  var settingInput = document.getElementById("setting");
+  var lessonInput = document.getElementById("lesson");
 
   state.story.setting =
-    settingInput
-      ? settingInput.value.trim()
-      : "";
+    settingInput ? settingInput.value.trim() : "";
 
   state.story.lesson =
-    lessonInput
-      ? lessonInput.value.trim()
-      : "";
+    lessonInput ? lessonInput.value.trim() : "";
 
   if (!state.story.setting) {
     showMessage("Please enter a story setting.");
@@ -234,31 +186,19 @@ function collectStoryPreferences() {
     return false;
   }
 
-  if (!state.story.type) {
-    state.story.type = "Magical Adventure";
-  }
-
   return true;
 }
 
 
-/* =========================================================
-   STORY SETTINGS
-========================================================= */
+/* STORY SETTINGS */
 
 function setupStorySettings() {
-
-  const lengthSelect =
-    document.getElementById("storyLength");
-
-  const toneSelect =
-    document.getElementById("storyTone");
+  var lengthSelect = document.getElementById("storyLength");
+  var toneSelect = document.getElementById("storyTone");
 
   if (lengthSelect) {
-
-    lengthSelect.addEventListener("change", function() {
-
-      const values = {
+    lengthSelect.addEventListener("change", function () {
+      var values = {
         short: "Short",
         medium: "Medium",
         long: "Long"
@@ -270,10 +210,8 @@ function setupStorySettings() {
   }
 
   if (toneSelect) {
-
-    toneSelect.addEventListener("change", function() {
-
-      const values = {
+    toneSelect.addEventListener("change", function () {
+      var values = {
         warm: "Warm & loving",
         magical: "Magical & whimsical",
         funny: "Funny & playful",
@@ -282,33 +220,24 @@ function setupStorySettings() {
       };
 
       state.story.tone =
-        values[toneSelect.value] ||
-        "Warm & loving";
+        values[toneSelect.value] || "Warm & loving";
     });
   }
 }
 
 
-/* =========================================================
-   PHOTO UPLOAD
-========================================================= */
+/* PHOTO UPLOAD */
 
 function setupPhotoUpload() {
-
-  const photoInput =
-    document.getElementById("photoInput");
-
-  const dropZone =
-    document.getElementById("dropZone");
+  var photoInput = document.getElementById("photoInput");
+  var dropZone = document.getElementById("dropZone");
 
   if (!photoInput) {
     return;
   }
 
-  photoInput.addEventListener("change", function(event) {
-
-    const files =
-      Array.from(event.target.files || []);
+  photoInput.addEventListener("change", function (event) {
+    var files = Array.from(event.target.files || []);
 
     addPhotos(files);
 
@@ -316,26 +245,24 @@ function setupPhotoUpload() {
   });
 
   if (dropZone) {
-
-    dropZone.addEventListener("dragover", function(event) {
+    dropZone.addEventListener("dragover", function (event) {
       event.preventDefault();
       dropZone.classList.add("dragging");
     });
 
-    dropZone.addEventListener("dragleave", function() {
+    dropZone.addEventListener("dragleave", function () {
       dropZone.classList.remove("dragging");
     });
 
-    dropZone.addEventListener("drop", function(event) {
-
+    dropZone.addEventListener("drop", function (event) {
       event.preventDefault();
 
       dropZone.classList.remove("dragging");
 
-      const files =
+      var files =
         Array.from(event.dataTransfer.files || [])
-          .filter(function(file) {
-            return file.type.startsWith("image/");
+          .filter(function (file) {
+            return file.type.indexOf("image/") === 0;
           });
 
       addPhotos(files);
@@ -343,32 +270,22 @@ function setupPhotoUpload() {
   }
 }
 
-
 async function addPhotos(files) {
-
   if (!files.length) {
     return;
   }
 
-  for (const file of files) {
-
+  for (var i = 0; i < files.length; i++) {
     try {
-
-      const compressed =
-        await compressImage(file);
+      var compressed = await compressImage(files[i]);
 
       state.photos.push({
         image: compressed,
-        name: file.name,
+        name: files[i].name,
         memory: ""
       });
-
     } catch (error) {
-
-      console.error(
-        "Could not process image:",
-        error
-      );
+      console.error("Could not process image:", error);
     }
   }
 
@@ -376,58 +293,37 @@ async function addPhotos(files) {
 }
 
 
-/* =========================================================
-   IMAGE COMPRESSION
-========================================================= */
+/* IMAGE COMPRESSION */
 
 function compressImage(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
 
-  return new Promise(function(resolve, reject) {
+    reader.onload = function (event) {
+      var image = new Image();
 
-    const reader = new FileReader();
+      image.onload = function () {
+        var maxSize = 1600;
 
-    reader.onload = function(event) {
-
-      const image =
-        new Image();
-
-      image.onload = function() {
-
-        const maxSize = 1600;
-
-        let width = image.width;
-        let height = image.height;
+        var width = image.width;
+        var height = image.height;
 
         if (width > maxSize || height > maxSize) {
-
           if (width > height) {
-
-            height =
-              Math.round(
-                height * maxSize / width
-              );
-
+            height = Math.round(height * maxSize / width);
             width = maxSize;
-
           } else {
-
-            width =
-              Math.round(
-                width * maxSize / height
-              );
-
+            width = Math.round(width * maxSize / height);
             height = maxSize;
           }
         }
 
-        const canvas =
-          document.createElement("canvas");
+        var canvas = document.createElement("canvas");
 
         canvas.width = width;
         canvas.height = height;
 
-        const context =
-          canvas.getContext("2d");
+        var context = canvas.getContext("2d");
 
         context.drawImage(
           image,
@@ -438,26 +334,19 @@ function compressImage(file) {
         );
 
         resolve(
-          canvas.toDataURL(
-            "image/jpeg",
-            0.78
-          )
+          canvas.toDataURL("image/jpeg", 0.78)
         );
       };
 
-      image.onerror = function() {
-        reject(
-          new Error("Unable to read image.")
-        );
+      image.onerror = function () {
+        reject(new Error("Unable to read image."));
       };
 
       image.src = event.target.result;
     };
 
-    reader.onerror = function() {
-      reject(
-        new Error("Unable to read file.")
-      );
+    reader.onerror = function () {
+      reject(new Error("Unable to read file."));
     };
 
     reader.readAsDataURL(file);
@@ -465,17 +354,11 @@ function compressImage(file) {
 }
 
 
-/* =========================================================
-   PHOTO DISPLAY
-========================================================= */
+/* PHOTO DISPLAY */
 
 function renderPhotos() {
-
-  const list =
-    document.getElementById("photoList");
-
-  const count =
-    document.getElementById("photoCount");
+  var list = document.getElementById("photoList");
+  var count = document.getElementById("photoCount");
 
   if (!list) {
     return;
@@ -484,152 +367,128 @@ function renderPhotos() {
   list.innerHTML = "";
 
   if (count) {
-
     count.textContent =
       state.photos.length +
-      (state.photos.length === 1
-        ? " photo"
-        : " photos");
+      (state.photos.length === 1 ? " photo" : " photos");
   }
 
-  state.photos.forEach(function(photo, index) {
-
-    const card =
-      document.createElement("div");
+  state.photos.forEach(function (photo, index) {
+    var card = document.createElement("div");
 
     card.className = "photo-item";
 
-    card.innerHTML = `
-      <div class="photo-preview">
-        <img
-          src="${photo.image}"
-          alt="Memory photo ${index + 1}"
-        >
-      </div>
+    var preview = document.createElement("div");
+    preview.className = "photo-preview";
 
-      <div class="photo-details">
+    var image = document.createElement("img");
+    image.src = photo.image;
+    image.alt = "Memory photo " + (index + 1);
 
-        <div class="photo-number">
-          Memory ${index + 1}
-        </div>
+    preview.appendChild(image);
 
-        <textarea
-          class="memory-input"
-          data-index="${index}"
-          rows="4"
-          placeholder="Tell us what happened in this photo..."
-        ></textarea>
+    var details = document.createElement("div");
+    details.className = "photo-details";
 
-        <div class="photo-controls">
+    var number = document.createElement("div");
+    number.className = "photo-number";
+    number.textContent = "Memory " + (index + 1);
 
-          <button
-            type="button"
-            class="photo-control"
-            data-action="up"
-            data-index="${index}"
-            ${index === 0 ? "disabled" : ""}
-          >
-            ↑
-          </button>
+    var textarea = document.createElement("textarea");
+    textarea.className = "memory-input";
+    textarea.setAttribute("data-index", index);
+    textarea.rows = 4;
+    textarea.placeholder =
+      "Tell us what happened in this photo...";
+    textarea.value = photo.memory || "";
 
-          <button
-            type="button"
-            class="photo-control"
-            data-action="down"
-            data-index="${index}"
-            ${index === state.photos.length - 1 ? "disabled" : ""}
-          >
-            ↓
-          </button>
+    textarea.addEventListener("input", function () {
+      state.photos[index].memory =
+        textarea.value;
+    });
 
-          <button
-            type="button"
-            class="photo-control delete"
-            data-action="delete"
-            data-index="${index}"
-          >
-            Remove
-          </button>
+    var controls = document.createElement("div");
+    controls.className = "photo-controls";
 
-        </div>
+    var up = document.createElement("button");
+    up.type = "button";
+    up.className = "photo-control";
+    up.setAttribute("data-action", "up");
+    up.setAttribute("data-index", index);
+    up.textContent = "↑";
+    up.disabled = index === 0;
 
-      </div>
-    `;
+    var down = document.createElement("button");
+    down.type = "button";
+    down.className = "photo-control";
+    down.setAttribute("data-action", "down");
+    down.setAttribute("data-index", index);
+    down.textContent = "↓";
+    down.disabled = index === state.photos.length - 1;
+
+    var remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "photo-control delete";
+    remove.setAttribute("data-action", "delete");
+    remove.setAttribute("data-index", index);
+    remove.textContent = "Remove";
+
+    controls.appendChild(up);
+    controls.appendChild(down);
+    controls.appendChild(remove);
+
+    details.appendChild(number);
+    details.appendChild(textarea);
+    details.appendChild(controls);
+
+    card.appendChild(preview);
+    card.appendChild(details);
 
     list.appendChild(card);
-
-    const textarea =
-      card.querySelector(".memory-input");
-
-    if (textarea) {
-      textarea.value =
-        photo.memory || "";
-
-      textarea.addEventListener(
-        "input",
-        function() {
-          state.photos[index].memory =
-            textarea.value;
-        }
-      );
-    }
   });
 }
 
 
-/* =========================================================
-   PHOTO CONTROLS
-========================================================= */
+/* PHOTO CONTROLS */
 
 function setupPhotoButtons() {
-
-  const list =
-    document.getElementById("photoList");
+  var list = document.getElementById("photoList");
 
   if (!list) {
     return;
   }
 
-  list.addEventListener("click", function(event) {
-
-    const button =
-      event.target.closest(
-        "[data-action]"
-      );
+  list.addEventListener("click", function (event) {
+    var button =
+      event.target.closest("[data-action]");
 
     if (!button) {
       return;
     }
 
-    const action =
+    var action =
       button.getAttribute("data-action");
 
-    const index =
-      Number(
-        button.getAttribute("data-index")
-      );
+    var index =
+      Number(button.getAttribute("data-index"));
 
     if (Number.isNaN(index)) {
       return;
     }
 
     if (action === "delete") {
-
       state.photos.splice(index, 1);
       renderPhotos();
       return;
     }
 
     if (action === "up" && index > 0) {
-
-      const temp =
-        state.photos[index - 1];
+      var previous = state.photos[index - 1];
 
       state.photos[index - 1] =
         state.photos[index];
 
       state.photos[index] =
-        temp;
+        previous;
 
       renderPhotos();
       return;
@@ -639,15 +498,13 @@ function setupPhotoButtons() {
       action === "down" &&
       index < state.photos.length - 1
     ) {
-
-      const temp =
-        state.photos[index + 1];
+      var next = state.photos[index + 1];
 
       state.photos[index + 1] =
         state.photos[index];
 
       state.photos[index] =
-        temp;
+        next;
 
       renderPhotos();
     }
@@ -655,45 +512,36 @@ function setupPhotoButtons() {
 }
 
 
-/* =========================================================
-   STORY ACTIONS
-========================================================= */
+/* STORY ACTIONS */
 
 function setupStoryActions() {
-
-  const addMemoryButton =
+  var addMemoryButton =
     document.getElementById("addMemoryBtn");
 
-  const createStoryButton =
+  var createStoryButton =
     document.getElementById("createStoryBtn");
 
-  const editStoryButton =
+  var editStoryButton =
     document.getElementById("editStoryBtn");
 
-  const startOverButton =
+  var startOverButton =
     document.getElementById("startOverBtn");
 
-  const printButton =
+  var printButton =
     document.getElementById("printStoryBtn");
 
   if (addMemoryButton) {
+    addMemoryButton.addEventListener("click", function () {
+      var input =
+        document.getElementById("photoInput");
 
-    addMemoryButton.addEventListener(
-      "click",
-      function() {
-
-        const input =
-          document.getElementById("photoInput");
-
-        if (input) {
-          input.click();
-        }
+      if (input) {
+        input.click();
       }
-    );
+    });
   }
 
   if (createStoryButton) {
-
     createStoryButton.addEventListener(
       "click",
       generateAIStory
@@ -701,17 +549,12 @@ function setupStoryActions() {
   }
 
   if (editStoryButton) {
-
-    editStoryButton.addEventListener(
-      "click",
-      function() {
-        goToStep(1);
-      }
-    );
+    editStoryButton.addEventListener("click", function () {
+      goToStep(1);
+    });
   }
 
   if (startOverButton) {
-
     startOverButton.addEventListener(
       "click",
       startOver
@@ -719,73 +562,53 @@ function setupStoryActions() {
   }
 
   if (printButton) {
-
-    printButton.addEventListener(
-      "click",
-      function() {
-        window.print();
-      }
-    );
+    printButton.addEventListener("click", function () {
+      window.print();
+    });
   }
 }
 
 
-/* =========================================================
-   AI STORY GENERATION
-========================================================= */
+/* AI STORY */
 
 async function generateAIStory() {
-
   if (!state.photos.length) {
-
     showMessage(
       "Please add at least one photo before creating the story."
     );
-
     return;
   }
 
-  collectStoryPreferences();
-
-  const button =
+  var button =
     document.getElementById("createStoryBtn");
 
-  const originalText =
+  var originalText =
     button ? button.innerHTML : "";
 
   if (button) {
-
     button.disabled = true;
-
     button.innerHTML =
       "Creating their story... ✨";
   }
 
   try {
+    var response =
+      await fetch("/api/generate-story", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          child: state.child,
+          story: state.story,
+          memories: state.photos
+        })
+      });
 
-    const response =
-      await fetch(
-        "/api/generate-story",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json"
-          },
-
-          body: JSON.stringify({
-            child: state.child,
-            story: state.story,
-            memories: state.photos
-          })
-        }
-      );
-
-    const data =
+    var data =
       await response.json();
 
     if (!response.ok) {
-
       throw new Error(
         data.error ||
         "The story could not be created."
@@ -793,7 +616,6 @@ async function generateAIStory() {
     }
 
     if (!data.story) {
-
       throw new Error(
         "The server returned an invalid story."
       );
@@ -807,7 +629,6 @@ async function generateAIStory() {
     goToStep(3);
 
   } catch (error) {
-
     console.error(
       "AI STORY ERROR:",
       error
@@ -819,56 +640,47 @@ async function generateAIStory() {
     );
 
   } finally {
-
     if (button) {
-
       button.disabled = false;
-
-      button.innerHTML =
-        originalText;
+      button.innerHTML = originalText;
     }
   }
 }
 
 
-/* =========================================================
-   RENDER GENERATED STORY
-========================================================= */
+/* RENDER STORY */
 
 function renderGeneratedStory() {
-
-  const story =
-    state.generatedStory;
+  var story = state.generatedStory;
 
   if (!story) {
     return;
   }
 
-  const title =
+  var title =
     document.getElementById("storyTitle");
 
-  const subtitle =
+  var subtitle =
     document.getElementById("storySubtitle");
 
-  const coverChildName =
+  var coverChildName =
     document.getElementById("coverChildName");
 
-  const coverStoryType =
+  var coverStoryType =
     document.getElementById("coverStoryType");
 
-  const endingText =
+  var endingText =
     document.getElementById("endingText");
 
-  const generatedPages =
+  var generatedPages =
     document.getElementById("generatedPages");
 
-  const coverPhotoWrap =
+  var coverPhotoWrap =
     document.getElementById("coverPhotoWrap");
 
   if (title) {
     title.textContent =
-      story.title ||
-      "Once Upon a Time...";
+      story.title || "Once Upon a Time...";
   }
 
   if (subtitle) {
@@ -892,20 +704,35 @@ function renderGeneratedStory() {
   }
 
   if (coverPhotoWrap) {
+    coverPhotoWrap.innerHTML = "";
 
     if (state.photos.length) {
+      var coverImage =
+        document.createElement("img");
 
-      coverPhotoWrap.innerHTML = `
-        <img
-          src="${state.photos[0].image}"
-          alt="Cover memory"
-        >
-      `;
+      coverImage.src =
+        state.photos[0].image;
+
+      coverImage.alt =
+        "Cover memory";
+
+      coverPhotoWrap.appendChild(
+        coverImage
+      );
 
     } else {
+      var placeholder =
+        document.createElement("div");
 
-      coverPhotoWrap.innerHTML =
-        '<div class="cover-placeholder">📖</div>';
+      placeholder.className =
+        "cover-placeholder";
+
+      placeholder.textContent =
+        "📖";
+
+      coverPhotoWrap.appendChild(
+        placeholder
+      );
     }
   }
 
@@ -915,76 +742,87 @@ function renderGeneratedStory() {
 
   generatedPages.innerHTML = "";
 
-  const pages =
+  var pages =
     Array.isArray(story.pages)
       ? story.pages
       : [];
 
-  pages.forEach(function(page, index) {
-
-    const article =
+  pages.forEach(function (page, index) {
+    var article =
       document.createElement("article");
 
     article.className =
       "story-page";
 
-    const photoIndex =
+    var photoIndex =
       Number.isInteger(page.photoIndex)
         ? page.photoIndex
         : index;
-
-    let imageHTML = "";
 
     if (
       state.photos[photoIndex] &&
       state.photos[photoIndex].image
     ) {
+      var photoWrap =
+        document.createElement("div");
 
-      imageHTML = `
-        <div class="story-photo-wrap">
-          <img
-            src="${state.photos[photoIndex].image}"
-            alt="Story memory ${index + 1}"
-          >
-        </div>
-      `;
+      photoWrap.className =
+        "story-photo-wrap";
+
+      var pageImage =
+        document.createElement("img");
+
+      pageImage.src =
+        state.photos[photoIndex].image;
+
+      pageImage.alt =
+        "Story memory " + (index + 1);
+
+      photoWrap.appendChild(pageImage);
+      article.appendChild(photoWrap);
     }
 
-    article.innerHTML = `
-      ${imageHTML}
+    var content =
+      document.createElement("div");
 
-      <div class="story-page-content">
+    content.className =
+      "story-page-content";
 
-        <div class="story-page-number">
-          ${index + 1}
-        </div>
+    var number =
+      document.createElement("div");
 
-        <h2>
-          ${escapeHtml(
-            page.heading || ""
-          )}
-        </h2>
+    number.className =
+      "story-page-number";
 
-        <p>
-          ${escapeHtml(
-            page.text || ""
-          )}
-        </p>
+    number.textContent =
+      index + 1;
 
-      </div>
-    `;
+    var heading =
+      document.createElement("h2");
+
+    heading.textContent =
+      page.heading || "";
+
+    var text =
+      document.createElement("p");
+
+    text.textContent =
+      page.text || "";
+
+    content.appendChild(number);
+    content.appendChild(heading);
+    content.appendChild(text);
+
+    article.appendChild(content);
 
     generatedPages.appendChild(article);
   });
 }
 
 
-/* =========================================================
-   START OVER
-========================================================= */
+/* START OVER */
 
 function startOver() {
-
   state.currentStep = 1;
 
   state.child = {
@@ -1005,7 +843,7 @@ function startOver() {
   state.photos = [];
   state.generatedStory = null;
 
-  const fields = [
+  var fields = [
     "childName",
     "personality",
     "favorites",
@@ -1013,9 +851,8 @@ function startOver() {
     "lesson"
   ];
 
-  fields.forEach(function(id) {
-
-    const element =
+  fields.forEach(function (id) {
+    var element =
       document.getElementById(id);
 
     if (element) {
@@ -1023,35 +860,34 @@ function startOver() {
     }
   });
 
-  const age =
+  var age =
     document.getElementById("childAge");
 
   if (age) {
     age.value = "";
   }
 
-  const length =
+  var length =
     document.getElementById("storyLength");
 
   if (length) {
     length.value = "medium";
   }
 
-  const tone =
+  var tone =
     document.getElementById("storyTone");
 
   if (tone) {
     tone.value = "warm";
   }
 
-  const cards =
+  var cards =
     document.querySelectorAll(
       "#storyTypeChoices .choice-card"
     );
 
-  cards.forEach(function(card) {
-
-    const selected =
+  cards.forEach(function (card) {
+    var selected =
       card.getAttribute("data-value") ===
       "Magical Adventure";
 
@@ -1067,22 +903,17 @@ function startOver() {
   });
 
   renderPhotos();
-
   goToStep(1);
 }
 
 
-/* =========================================================
-   MESSAGE
-========================================================= */
+/* MESSAGE */
 
 function showMessage(message) {
-
-  let box =
+  var box =
     document.getElementById("appMessage");
 
   if (!box) {
-
     box =
       document.createElement("div");
 
@@ -1106,32 +937,13 @@ function showMessage(message) {
 
   box.textContent = message;
 
-  clearTimeout(
-    showMessage.timeout
-  );
+  clearTimeout(showMessage.timeout);
 
   showMessage.timeout =
-    setTimeout(function() {
-
+    setTimeout(function () {
       if (box) {
         box.remove();
       }
-
     }, 4000);
-}
-
-
-/* =========================================================
-   HTML ESCAPING
-========================================================= */
-
-function escapeHtml(value) {
-
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 ```
