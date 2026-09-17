@@ -62,7 +62,6 @@ var cards = container.querySelectorAll(".choice-card");
 
 cards.forEach(function (card) {
 
-```
 card.addEventListener("click", function () {
 
   cards.forEach(function (item) {
@@ -81,7 +80,6 @@ card.addEventListener("click", function () {
 
   console.log("Adventure selected:", state.story.type);
 });
-```
 
 });
 
@@ -163,7 +161,6 @@ document.getElementById("backToDetails");
 
 if (continueButton) {
 
-```
 continueButton.addEventListener("click", function () {
 
   if (!collectChildDetails()) {
@@ -174,17 +171,14 @@ continueButton.addEventListener("click", function () {
 
   showStep(2);
 });
-```
 
 }
 
 if (backButton) {
 
-```
 backButton.addEventListener("click", function () {
   showStep(1);
 });
-```
 
 }
 
@@ -203,20 +197,17 @@ document.getElementById("addMemoryBtn");
 
 if (input) {
 
-```
 input.addEventListener("change", function (event) {
 
   addPhotos(event.target.files);
 
   input.value = "";
 });
-```
 
 }
 
 if (dropZone) {
 
-```
 dropZone.addEventListener("dragover", function (event) {
 
   event.preventDefault();
@@ -239,20 +230,17 @@ dropZone.addEventListener("drop", function (event) {
 
   addPhotos(event.dataTransfer.files);
 });
-```
 
 }
 
 if (addButton) {
 
-```
 addButton.addEventListener("click", function () {
 
   if (input) {
     input.click();
   }
 });
-```
 
 }
 
@@ -266,7 +254,6 @@ return;
 
 Array.from(files).forEach(function (file) {
 
-```
 if (!file.type || !file.type.startsWith("image/")) {
   return;
 }
@@ -277,7 +264,6 @@ state.photos.push({
   url: URL.createObjectURL(file),
   memory: ""
 });
-```
 
 });
 
@@ -299,20 +285,17 @@ list.innerHTML = "";
 
 if (count) {
 
-```
 if (state.photos.length === 1) {
   count.textContent = "1 photo";
 } else {
   count.textContent =
     state.photos.length + " photos";
 }
-```
 
 }
 
 state.photos.forEach(function (photo, index) {
 
-```
 var item =
   document.createElement("div");
 
@@ -389,7 +372,6 @@ item.appendChild(image);
 item.appendChild(content);
 
 list.appendChild(item);
-```
 
 });
 
@@ -405,7 +387,6 @@ return;
 
 button.addEventListener("click", function () {
 
-```
 if (state.photos.length === 0) {
 
   alert(
@@ -418,7 +399,6 @@ if (state.photos.length === 0) {
 collectStoryPreferences();
 
 generateStory();
-```
 
 });
 
@@ -436,7 +416,6 @@ button.textContent = "Creating story...";
 
 try {
 
-```
 var memories = state.photos.map(function (photo) {
 
   return {
@@ -499,11 +478,9 @@ renderStory(
 
 
 showStep(3);
-```
 
 } catch (error) {
 
-```
 console.error(
   "AI STORY ERROR:",
   error
@@ -513,11 +490,9 @@ alert(
   "We couldn't create the story yet.\n\n" +
   error.message
 );
-```
 
 } finally {
 
-```
 if (button) {
 
   button.disabled = false;
@@ -525,7 +500,6 @@ if (button) {
   button.innerHTML =
     'Create their story <span>✨</span>';
 }
-```
 
 }
 }
@@ -592,7 +566,6 @@ Array.isArray(story.pages)
 
 storyPages.forEach(function (page, index) {
 
-```
 var article =
   document.createElement("article");
 
@@ -665,7 +638,6 @@ article.appendChild(photoArea);
 article.appendChild(content);
 
 pages.appendChild(article);
-```
 
 });
 }
@@ -682,7 +654,6 @@ wrap.innerHTML = "";
 
 if (state.photos.length > 0) {
 
-```
 var image =
   document.createElement("img");
 
@@ -698,9 +669,7 @@ wrap.appendChild(image);
 
 } else {
 
-```
 wrap.textContent = "📖";
-```
 
 }
 }
@@ -728,7 +697,6 @@ return;
 
 button.addEventListener("click", function () {
 
-```
 state.photos.forEach(function (photo) {
 
   if (photo.url) {
@@ -814,7 +782,6 @@ if (cards.length > 0) {
 renderPhotos();
 
 showStep(1);
-```
 
 });
 }
