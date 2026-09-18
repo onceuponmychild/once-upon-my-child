@@ -1,61 +1,199 @@
 export default async function handler(req, res) {
   try {
-    console.log("GENERATE STORY FUNCTION STARTED");
-
     if (req.method !== "POST") {
       return res.status(405).json({
         error: "Method not allowed"
       });
     }
 
-    console.log("REQUEST RECEIVED");
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({
+        error: "OPENAI_API_KEY is not configured."
+      });
+    }
 
     const body = req.body || {};
 
-    console.log("BODY RECEIVED");
-
     const child = body.child || {};
     const story = body.story || {};
-    const memories = body.memories || {};
 
-    console.log("CHILD:", {
-      name: child.name,
-      age: child.age
-    });
+    if (!child.name) {
+      return res.status(400).json({
+        error: "Child information is required."
+      });
+    }
 
-    console.log("STORY:", {
-      type: story.type,
-      setting: story.setting,
-      lesson: story.lesson
-    });
+    const prompt = `
+Create a very short children's story.
 
-    const photos = Array.isArray(memories.photos)
-      ? memories.photos
-      : [];
+Child:
+Name: ${child.name}
+Age: ${child.age || "unknown"}
+Personality: ${child.personality || "friendly"}
+Favorite things: ${child.favorites || "not provided"}
 
-    console.log(
-      "PHOTO COUNT:",
-      photos.length
+Story type: ${story.type || "Magical Adventure"}
+Setting: ${story.setting || "a magical world"}
+Lesson: ${story.lesson || "being brave"}
+Tone: ${story.tone || "warm and magical"}
+
+Return ONLY valid JSON in this exact format:
+
+{
+  "title": "Story title",
+  "subtitle": "Short subtitle",
+  "dedication": "A short dedication",
+  "pages": [
+    {
+      "photoIndex": 0,
+      "heading": "Beginning",
+      "text": "Story text"
+    }
+  ],
+  "ending": "Final ending"
+}
+`;
+
+    console.log("Sending text-only request to OpenAI...");
+
+    const response = await fetch(
+      "https://api.openai.com/v1/responses",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+
+        body: JSON.stringify({
+          model: "gpt-5.6-luna",
+
+          input: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "input_text",
+                  text: prompt
+                }
+              ]
+            }
+          ],
+
+          max_output_tokens: 2000
+        })
+      }
     );
 
-    return res.status(200).json({
-      success: true,
-      message: "API connection is working.",
-      received: {
-        childName: child.name || null,
-        storyType: story.type || null,
-        photoCount: photos.length
+    const responseText = await response.text();
+
+    console.log(
+      "OPENAI STATUS:",
+      response.status
+    );
+
+    console.log(
+      "OPENAI RESPONSE:",
+      responseText
+    );
+
+    if (!response.ok) {
+      return res.status(500).json({
+        error: "OpenAI API request failed.",
+        details: responseText
+      });
+    }
+
+    let result;
+
+    try {
+      result = JSON.parse(responseText);
+    } catch (error) {
+      return res.status(500).json({
+        error: "Unable to parse OpenAI response.",
+        details: responseText
+      });
+    }
+
+    let outputText = "";
+
+    if (
+      typeof result.output_text === "string"
+    ) {
+      outputText = result.output_text;
+    }
+
+    if (
+      !outputText &&
+      Array.isArray(result.output)
+    ) {
+      for (
+        const item of result.output
+      ) {
+        if (
+          !Array.isArray(item.content)
+        ) {
+          continue;
+        }
+
+        for (
+          const content of item.content
+        ) {
+          if (
+            content &&
+            content.type === "output_text" &&
+            typeof content.text === "string"
+          ) {
+            outputText += content.text;
+          }
+        }
       }
+    }
+
+    if (!outputText.trim()) {
+      return res.status(500).json({
+        error: "OpenAI returned no text.",
+        details: responseText
+      });
+    }
+
+    outputText = outputText
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+
+    let storyResult;
+
+    try {
+      storyResult = JSON.parse(outputText);
+    } catch (error) {
+      console.error(
+        "STORY JSON ERROR:",
+        outputText
+      );
+
+      return res.status(500).json({
+        error: "AI returned invalid JSON.",
+        details: outputText
+      });
+    }
+
+    return res.status(200).json({
+      story: storyResult
     });
 
   } catch (error) {
     console.error(
-      "TEST FUNCTION ERROR:",
+      "GENERATE STORY ERROR:",
       error
     );
 
     return res.status(500).json({
-      error: "Test function failed.",
+      error: "Unable to generate story.",
       details:
         error && error.message
           ? error.message
