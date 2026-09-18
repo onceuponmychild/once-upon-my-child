@@ -1,89 +1,65 @@
-async function generateStory() {
+export default async function handler(req, res) {
   try {
-    const response = await fetch("/api/generate-story", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        child: state.child,
-        story: state.story,
-        memories: {
-          general: state.memories,
-          photos: state.photos.map((photo, index) => ({
-            order: index + 1,
-            image: photo.image,
-            name: photo.name || `Photo ${index + 1}`,
-            memory: photo.memory || ""
-          }))
-        }
-      })
+    console.log("GENERATE STORY FUNCTION STARTED");
+
+    if (req.method !== "POST") {
+      return res.status(405).json({
+        error: "Method not allowed"
+      });
+    }
+
+    console.log("REQUEST RECEIVED");
+
+    const body = req.body || {};
+
+    console.log("BODY RECEIVED");
+
+    const child = body.child || {};
+    const story = body.story || {};
+    const memories = body.memories || {};
+
+    console.log("CHILD:", {
+      name: child.name,
+      age: child.age
     });
 
-    const rawText = await response.text();
+    console.log("STORY:", {
+      type: story.type,
+      setting: story.setting,
+      lesson: story.lesson
+    });
 
-    console.log("GENERATE STORY STATUS:", response.status);
-    console.log("GENERATE STORY RAW RESPONSE:", rawText);
-
-    let data;
-
-    try {
-      data = JSON.parse(rawText);
-    } catch (parseError) {
-      console.error(
-        "SERVER RETURNED NON-JSON:",
-        rawText
-      );
-
-      throw new Error(
-        `Server returned status ${response.status}: ${rawText.substring(0, 500)}`
-      );
-    }
-
-    if (!response.ok) {
-      console.error(
-        "STORY API ERROR:",
-        data
-      );
-
-      throw new Error(
-        data.details ||
-        data.error ||
-        `Story generation failed with status ${response.status}.`
-      );
-    }
-
-    if (!data.story) {
-      console.error(
-        "NO STORY IN RESPONSE:",
-        data
-      );
-
-      throw new Error(
-        "The server responded successfully but no story was returned."
-      );
-    }
+    const photos = Array.isArray(memories.photos)
+      ? memories.photos
+      : [];
 
     console.log(
-      "STORY GENERATED SUCCESSFULLY:",
-      data.story
+      "PHOTO COUNT:",
+      photos.length
     );
 
-    state.generatedStory = data.story;
-
-    renderGeneratedStory();
-
-    showStep(3);
+    return res.status(200).json({
+      success: true,
+      message: "API connection is working.",
+      received: {
+        childName: child.name || null,
+        storyType: story.type || null,
+        photoCount: photos.length
+      }
+    });
 
   } catch (error) {
     console.error(
-      "GENERATE STORY FAILED:",
+      "TEST FUNCTION ERROR:",
       error
     );
 
-    alert(
-      "Story generation error:\n\n" +
-      (error.message || String(error))
-    );
+    return res.status(500).json({
+      error: "Test function failed.",
+      details:
+        error && error.message
+          ? error.message
+          : String(error)
+    });
   }
 }
