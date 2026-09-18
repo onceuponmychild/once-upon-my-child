@@ -26,16 +26,9 @@ export default async function handler(req, res) {
     }
 
 
-    /*
-      Support the current app.js structure:
-
-      memories: {
-        general: "...",
-        photos: [...]
-      }
-
-      Also support the older array format.
-    */
+    /* =========================================
+       NORMALIZE MEMORIES
+    ========================================= */
 
     let photoMemories = [];
 
@@ -80,6 +73,53 @@ export default async function handler(req, res) {
       });
 
     }
+
+
+    /* =========================================
+       DEBUG THE RECEIVED PHOTO DATA
+    ========================================= */
+
+    console.log(
+      "Photos received:",
+      photoMemories.length
+    );
+
+
+    photoMemories.forEach(
+      function(photo, index) {
+
+        console.log(
+          "Photo",
+          index + 1,
+          "keys:",
+          photo
+            ? Object.keys(photo)
+            : []
+        );
+
+
+        if (photo) {
+
+          console.log(
+            "Photo",
+            index + 1,
+            "has image:",
+            typeof photo.image === "string"
+          );
+
+          console.log(
+            "Photo",
+            index + 1,
+            "image starts:",
+            typeof photo.image === "string"
+              ? photo.image.substring(0, 40)
+              : "NO IMAGE"
+          );
+
+        }
+
+      }
+    );
 
 
     /* =========================================
@@ -130,7 +170,7 @@ export default async function handler(req, res) {
 
 
     /* =========================================
-       BUILD STORY PROMPT
+       STORY PROMPT
     ========================================= */
 
     const prompt = `
@@ -149,23 +189,23 @@ Lesson: ${lesson}
 Length: ${length}
 Tone: ${tone}
 
-The uploaded photographs are real photographs of the child's experiences.
+The uploaded photographs are real photographs connected to the child's memories.
 
 IMPORTANT:
-- The child should be the main character.
-- Study the photographs carefully.
-- Use visible details from the photographs when appropriate.
-- Treat the parent's memories as the strongest source of factual information.
-- Do not invent specific real-world facts that contradict the parent's memories.
-- Imagination is encouraged for the adventure/story elements.
-- Preserve the chronological/order of the photographs.
+- The child is the main character.
+- Carefully examine the uploaded photographs.
+- Use visible details from the photographs.
+- Use the parent's written memories as the strongest factual source.
+- Do not contradict the parent's memories.
+- Imagination is encouraged for the adventure elements.
+- Keep the photographs in their original order.
 - Each photograph should normally become one unique story page.
-- Do not use the same photograph more than once.
-- Make the story feel like one connected adventure rather than separate photo captions.
-- Keep the writing appropriate for the child's age.
-- Make the story emotionally warm and memorable.
-- Create a satisfying beginning, middle and ending.
-- Maximum ${maxPages} story pages.
+- Never use the same photograph twice.
+- Make all pages feel like one connected story.
+- Keep the story appropriate for the child's age.
+- Make it warm, magical, memorable and emotionally engaging.
+- Create a clear beginning, middle and ending.
+- Maximum ${maxPages} pages.
 
 Return ONLY valid JSON.
 
@@ -188,7 +228,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       BUILD OPENAI MULTIMODAL INPUT
+       BUILD MULTIMODAL CONTENT
     ========================================= */
 
     const content = [];
@@ -200,28 +240,62 @@ Use exactly this structure:
     });
 
 
+    let usableImageCount = 0;
+
+
     photoMemories.forEach(
       function(memory, index) {
 
-        /*
-          The current app.js sends:
+        if (!memory) {
+          return;
+        }
 
-          {
-            order: 1,
-            image: "data:image/...",
-            memory: "..."
-          }
+
+        /*
+          Accept the normal image property.
         */
+
+        let imageData =
+          memory.image;
+
+
+        /*
+          Also accept a few possible
+          alternative property names.
+        */
+
+        if (
+          typeof imageData !== "string"
+        ) {
+
+          imageData =
+            memory.dataUrl ||
+            memory.dataURL ||
+            memory.imageData ||
+            memory.url ||
+            null;
+
+        }
 
 
         if (
-          memory &&
-          typeof memory.image === "string" &&
-          memory.image.startsWith("data:image/")
+          typeof imageData === "string" &&
+          imageData.length > 0
         ) {
 
+          console.log(
+            "Using image for photo",
+            index + 1,
+            "length:",
+            imageData.length
+          );
+
+
           content.push({
-            type: "input_text",
+
+            type:
+              "input_text",
+
             text:
               "PHOTO " +
               (index + 1) +
@@ -230,13 +304,27 @@ Use exactly this structure:
                 memory.memory ||
                 "No written memory was provided."
               )
+
           });
 
+
+          /*
+            OpenAI accepts the image
+            as a data URL here.
+          */
 
           content.push({
-            type: "input_image",
-            image_url: memory.image
+
+            type:
+              "input_image",
+
+            image_url:
+              imageData
+
           });
+
+
+          usableImageCount++;
 
         }
 
@@ -245,22 +333,36 @@ Use exactly this structure:
 
 
     /* =========================================
-       CHECK THAT IMAGES WERE ACTUALLY ADDED
+       IMAGE CHECK
     ========================================= */
 
-    const imageCount =
-      content.filter(
-        function(item) {
-          return item.type === "input_image";
-        }
-      ).length;
+    console.log(
+      "Usable images:",
+      usableImageCount
+    );
 
 
-    if (imageCount === 0) {
+    if (usableImageCount === 0) {
 
       return res.status(400).json({
+
         error:
-          "No usable image data was received by the story generator."
+          "No usable image data was received by the story generator.",
+
+        details:
+          "The API received the photo record, but no image data was found inside it.",
+
+        receivedPhotoKeys:
+          photoMemories.map(
+            function(photo) {
+
+              return photo
+                ? Object.keys(photo)
+                : [];
+
+            }
+          )
+
       });
 
     }
@@ -271,17 +373,7 @@ Use exactly this structure:
     ========================================= */
 
     console.log(
-      "Sending story request to OpenAI.",
-      {
-        child:
-          child.name,
-
-        photos:
-          imageCount,
-
-        storyType:
-          storyType
-      }
+      "Sending image story request to OpenAI..."
     );
 
 
@@ -289,40 +381,51 @@ Use exactly this structure:
       await fetch(
         "https://api.openai.com/v1/responses",
         {
-          method: "POST",
+
+          method:
+            "POST",
 
           headers: {
+
             "Content-Type":
               "application/json",
 
             "Authorization":
               `Bearer ${apiKey}`
+
           },
 
-          body: JSON.stringify({
+          body:
+            JSON.stringify({
 
-            model:
-              "gpt-5.6-luna",
+              model:
+                "gpt-5.6-luna",
 
-            input: [
-              {
-                role: "user",
+              input: [
 
-                content:
-                  content
-              }
-            ],
+                {
 
-            max_output_tokens:
-              4000
+                  role:
+                    "user",
 
-          })
+                  content:
+                    content
+
+                }
+
+              ],
+
+              max_output_tokens:
+                4000
+
+            })
+
         }
       );
 
 
     /* =========================================
-       HANDLE OPENAI ERROR
+       READ OPENAI RESPONSE
     ========================================= */
 
     const responseText =
@@ -366,18 +469,12 @@ Use exactly this structure:
           responseText
         );
 
-    } catch (parseError) {
-
-      console.error(
-        "Could not parse OpenAI response:",
-        responseText
-      );
-
+    } catch (error) {
 
       return res.status(500).json({
 
         error:
-          "Invalid response received from OpenAI.",
+          "Could not parse OpenAI response.",
 
         details:
           responseText
@@ -394,11 +491,6 @@ Use exactly this structure:
     let outputText =
       openAIResult.output_text;
 
-
-    /*
-      Fallback in case output_text
-      isn't available.
-    */
 
     if (!outputText) {
 
@@ -446,6 +538,7 @@ Use exactly this structure:
 
       outputText =
         textParts.join("\n");
+
     }
 
 
@@ -467,22 +560,12 @@ Use exactly this structure:
 
 
     /* =========================================
-       CLEAN JSON RESPONSE
+       CLEAN JSON
     ========================================= */
 
     outputText =
       outputText.trim();
 
-
-    /*
-      Sometimes models return:
-
-      ```json
-      {...}
-      ```
-
-      Remove those fences.
-    */
 
     if (
       outputText.startsWith("```")
@@ -494,16 +577,23 @@ Use exactly this structure:
           ""
         );
 
+
       outputText =
         outputText.replace(
           /\s*```$/,
           ""
         );
 
+
       outputText =
         outputText.trim();
+
     }
 
+
+    /* =========================================
+       PARSE STORY JSON
+    ========================================= */
 
     let generatedStory;
 
@@ -515,7 +605,7 @@ Use exactly this structure:
           outputText
         );
 
-    } catch (jsonError) {
+    } catch (error) {
 
       console.error(
         "Story JSON parsing failed:",
@@ -537,7 +627,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       VALIDATE STORY
+       VALIDATE PAGES
     ========================================= */
 
     if (
@@ -563,7 +653,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       CLEAN STORY PAGES
+       CLEAN PAGES
     ========================================= */
 
     const cleanedPages =
@@ -576,16 +666,19 @@ Use exactly this structure:
             }
 
 
-            var index =
+            const photoIndex =
               Number(
                 page.photoIndex
               );
 
 
             return (
-              Number.isInteger(index) &&
-              index >= 0 &&
-              index < photoMemories.length
+              Number.isInteger(
+                photoIndex
+              ) &&
+              photoIndex >= 0 &&
+              photoIndex <
+                photoMemories.length
             );
 
           }
@@ -621,7 +714,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       REMOVE DUPLICATE PHOTO PAGES
+       REMOVE DUPLICATE PHOTOS
     ========================================= */
 
     const usedPhotos =
@@ -639,6 +732,7 @@ Use exactly this structure:
           ) {
 
             return false;
+
           }
 
 
@@ -654,7 +748,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       SORT BY PHOTO ORDER
+       SORT PAGES
     ========================================= */
 
     uniquePages.sort(
@@ -670,7 +764,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       FINAL STORY OBJECT
+       FINAL STORY
     ========================================= */
 
     const finalStory = {
@@ -705,10 +799,6 @@ Use exactly this structure:
     };
 
 
-    /* =========================================
-       RETURN STORY TO APP
-    ========================================= */
-
     console.log(
       "Story successfully generated.",
       {
@@ -717,6 +807,10 @@ Use exactly this structure:
       }
     );
 
+
+    /* =========================================
+       RETURN STORY
+    ========================================= */
 
     return res.status(200).json({
 
