@@ -1,10 +1,13 @@
 export default async function handler(req, res) {
 
   if (req.method !== "POST") {
+
     return res.status(405).json({
       error: "Method not allowed"
     });
+
   }
+
 
   try {
 
@@ -16,30 +19,43 @@ export default async function handler(req, res) {
 
 
     /* =========================================
-       BASIC VALIDATION
+       VALIDATE CHILD
     ========================================= */
 
-    if (!child || !child.name) {
+    if (
+      !child ||
+      !child.name
+    ) {
+
       return res.status(400).json({
-        error: "Child information is required."
+
+        error:
+          "Child information is required."
+
       });
+
     }
 
 
     /* =========================================
-       NORMALIZE MEMORIES
+       GET PHOTOS
     ========================================= */
 
     let photoMemories = [];
 
 
-    if (Array.isArray(memories)) {
+    if (
+      Array.isArray(memories)
+    ) {
 
-      photoMemories = memories;
+      photoMemories =
+        memories;
 
     } else if (
       memories &&
-      Array.isArray(memories.photos)
+      Array.isArray(
+        memories.photos
+      )
     ) {
 
       photoMemories =
@@ -48,17 +64,22 @@ export default async function handler(req, res) {
     }
 
 
-    if (photoMemories.length === 0) {
+    if (
+      photoMemories.length === 0
+    ) {
 
       return res.status(400).json({
-        error: "At least one photo is required."
+
+        error:
+          "At least one photo is required."
+
       });
 
     }
 
 
     /* =========================================
-       OPENAI API KEY
+       API KEY
     ========================================= */
 
     const apiKey =
@@ -68,15 +89,17 @@ export default async function handler(req, res) {
     if (!apiKey) {
 
       return res.status(500).json({
+
         error:
           "OPENAI_API_KEY is not configured in Vercel."
+
       });
 
     }
 
 
     /* =========================================
-       DEBUG THE RECEIVED PHOTO DATA
+       DEBUG PHOTO DATA
     ========================================= */
 
     console.log(
@@ -98,25 +121,15 @@ export default async function handler(req, res) {
         );
 
 
-        if (photo) {
-
-          console.log(
-            "Photo",
-            index + 1,
-            "has image:",
-            typeof photo.image === "string"
-          );
-
-          console.log(
-            "Photo",
-            index + 1,
-            "image starts:",
-            typeof photo.image === "string"
-              ? photo.image.substring(0, 40)
-              : "NO IMAGE"
-          );
-
-        }
+        console.log(
+          "Photo",
+          index + 1,
+          "has image:",
+          !!(
+            photo &&
+            photo.image
+          )
+        );
 
       }
     );
@@ -154,60 +167,94 @@ export default async function handler(req, res) {
     let maxPages = 8;
 
 
-    if (length === "short") {
+    if (
+      length === "short"
+    ) {
+
       maxPages = 5;
+
     }
 
 
-    if (length === "medium") {
+    if (
+      length === "medium"
+    ) {
+
       maxPages = 8;
+
     }
 
 
-    if (length === "long") {
+    if (
+      length === "long"
+    ) {
+
       maxPages = 10;
+
     }
 
 
     /* =========================================
-       STORY PROMPT
+       PROMPT
     ========================================= */
 
     const prompt = `
 Create a personalized children's story using the information below.
 
 CHILD
-Name: ${child.name}
-Age: ${child.age || "Not specified"}
-Personality: ${child.personality || "Not specified"}
-Favorite things: ${child.favorites || "Not specified"}
+
+Name:
+${child.name}
+
+Age:
+${child.age || "Not specified"}
+
+Personality:
+${child.personality || "Not specified"}
+
+Favorite things:
+${child.favorites || "Not specified"}
+
 
 STORY
-Adventure type: ${storyType}
-Setting: ${setting}
-Lesson: ${lesson}
-Length: ${length}
-Tone: ${tone}
+
+Adventure type:
+${storyType}
+
+Setting:
+${setting}
+
+Lesson:
+${lesson}
+
+Length:
+${length}
+
+Tone:
+${tone}
+
 
 The uploaded photographs are real photographs connected to the child's memories.
 
-IMPORTANT:
-- The child is the main character.
+IMPORTANT RULES:
+
+- The child must be the main character.
 - Carefully examine the uploaded photographs.
 - Use visible details from the photographs.
 - Use the parent's written memories as the strongest factual source.
 - Do not contradict the parent's memories.
 - Imagination is encouraged for the adventure elements.
-- Keep the photographs in their original order.
+- Preserve the original order of the photographs.
 - Each photograph should normally become one unique story page.
 - Never use the same photograph twice.
-- Make all pages feel like one connected story.
+- Make the pages feel like one connected story.
 - Keep the story appropriate for the child's age.
-- Make it warm, magical, memorable and emotionally engaging.
+- Make the story warm, magical, memorable and emotionally engaging.
 - Create a clear beginning, middle and ending.
-- Maximum ${maxPages} pages.
+- Maximum ${maxPages} story pages.
 
-Return ONLY valid JSON.
+
+RETURN ONLY VALID JSON.
 
 Use exactly this structure:
 
@@ -228,15 +275,20 @@ Use exactly this structure:
 
 
     /* =========================================
-       BUILD MULTIMODAL CONTENT
+       BUILD AI CONTENT
     ========================================= */
 
     const content = [];
 
 
     content.push({
-      type: "input_text",
-      text: prompt
+
+      type:
+        "input_text",
+
+      text:
+        prompt
+
     });
 
 
@@ -244,38 +296,23 @@ Use exactly this structure:
 
 
     photoMemories.forEach(
-      function(memory, index) {
+      function(photo, index) {
 
-        if (!memory) {
+        if (!photo) {
+
           return;
+
         }
 
 
         /*
-          Accept the normal image property.
+          The expected property is:
+
+          photo.image
         */
 
-        let imageData =
-          memory.image;
-
-
-        /*
-          Also accept a few possible
-          alternative property names.
-        */
-
-        if (
-          typeof imageData !== "string"
-        ) {
-
-          imageData =
-            memory.dataUrl ||
-            memory.dataURL ||
-            memory.imageData ||
-            memory.url ||
-            null;
-
-        }
+        const imageData =
+          photo.image;
 
 
         if (
@@ -284,7 +321,7 @@ Use exactly this structure:
         ) {
 
           console.log(
-            "Using image for photo",
+            "Adding image",
             index + 1,
             "length:",
             imageData.length
@@ -297,21 +334,18 @@ Use exactly this structure:
               "input_text",
 
             text:
+
               "PHOTO " +
               (index + 1) +
               " PARENT MEMORY:\n" +
+
               (
-                memory.memory ||
+                photo.memory ||
                 "No written memory was provided."
               )
 
           });
 
-
-          /*
-            OpenAI accepts the image
-            as a data URL here.
-          */
 
           content.push({
 
@@ -333,16 +367,18 @@ Use exactly this structure:
 
 
     /* =========================================
-       IMAGE CHECK
+       VERIFY IMAGES
     ========================================= */
 
     console.log(
-      "Usable images:",
+      "Usable image count:",
       usableImageCount
     );
 
 
-    if (usableImageCount === 0) {
+    if (
+      usableImageCount === 0
+    ) {
 
       return res.status(400).json({
 
@@ -350,7 +386,7 @@ Use exactly this structure:
           "No usable image data was received by the story generator.",
 
         details:
-          "The API received the photo record, but no image data was found inside it.",
+          "The API received the photo records but no image data was found.",
 
         receivedPhotoKeys:
           photoMemories.map(
@@ -369,11 +405,11 @@ Use exactly this structure:
 
 
     /* =========================================
-       OPENAI REQUEST
+       CALL OPENAI
     ========================================= */
 
     console.log(
-      "Sending image story request to OpenAI..."
+      "Sending photos to OpenAI..."
     );
 
 
@@ -425,14 +461,16 @@ Use exactly this structure:
 
 
     /* =========================================
-       READ OPENAI RESPONSE
+       OPENAI RESPONSE
     ========================================= */
 
     const responseText =
       await openAIResponse.text();
 
 
-    if (!openAIResponse.ok) {
+    if (
+      !openAIResponse.ok
+    ) {
 
       console.error(
         "OpenAI API error:",
@@ -456,7 +494,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       PARSE OPENAI RESPONSE
+       PARSE RESPONSE
     ========================================= */
 
     let openAIResult;
@@ -510,7 +548,9 @@ Use exactly this structure:
 
           if (
             item &&
-            Array.isArray(item.content)
+            Array.isArray(
+              item.content
+            )
           ) {
 
             item.content.forEach(
@@ -518,7 +558,8 @@ Use exactly this structure:
 
                 if (
                   part &&
-                  typeof part.text === "string"
+                  typeof part.text ===
+                    "string"
                 ) {
 
                   textParts.push(
@@ -592,7 +633,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       PARSE STORY JSON
+       PARSE STORY
     ========================================= */
 
     let generatedStory;
@@ -627,7 +668,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       VALIDATE PAGES
+       VALIDATE STORY
     ========================================= */
 
     if (
@@ -658,11 +699,14 @@ Use exactly this structure:
 
     const cleanedPages =
       generatedStory.pages
+
         .filter(
           function(page) {
 
             if (!page) {
+
               return false;
+
             }
 
 
@@ -673,16 +717,21 @@ Use exactly this structure:
 
 
             return (
+
               Number.isInteger(
                 photoIndex
               ) &&
+
               photoIndex >= 0 &&
+
               photoIndex <
                 photoMemories.length
+
             );
 
           }
         )
+
         .map(
           function(page) {
 
@@ -714,7 +763,7 @@ Use exactly this structure:
 
 
     /* =========================================
-       REMOVE DUPLICATE PHOTOS
+       REMOVE DUPLICATES
     ========================================= */
 
     const usedPhotos =
@@ -800,16 +849,12 @@ Use exactly this structure:
 
 
     console.log(
-      "Story successfully generated.",
-      {
-        pages:
-          finalStory.pages.length
-      }
+      "Story successfully generated."
     );
 
 
     /* =========================================
-       RETURN STORY
+       RETURN TO APP
     ========================================= */
 
     return res.status(200).json({
