@@ -9,11 +9,11 @@ var state = {
   },
 
   story: {
-    type: "",
+    type: "Magical Adventure",
     setting: "",
     lesson: "",
-    length: "",
-    tone: ""
+    length: "medium",
+    tone: "warm"
   },
 
   memories: "",
@@ -24,25 +24,25 @@ var state = {
 };
 
 
-/* =========================
-   GENERAL HELPERS
-========================= */
+/* =========================================
+   BASIC HELPERS
+========================================= */
 
 function getElement(id) {
   return document.getElementById(id);
 }
 
-function getValue(ids) {
-  for (var i = 0; i < ids.length; i++) {
-    var element = document.getElementById(ids[i]);
 
-    if (element) {
-      return element.value || "";
-    }
+function getValue(id) {
+  var element = document.getElementById(id);
+
+  if (!element) {
+    return "";
   }
 
-  return "";
+  return element.value || "";
 }
+
 
 function escapeHtml(value) {
   if (value === null || value === undefined) {
@@ -58,385 +58,317 @@ function escapeHtml(value) {
 }
 
 
-/* =========================
+/* =========================================
    STEP NAVIGATION
-========================= */
+========================================= */
 
 function showStep(step) {
+
   state.currentStep = step;
 
-  var steps = document.querySelectorAll(".step");
-
-  steps.forEach(function(item) {
-    item.classList.remove("active");
-  });
-
-  var activeStep = document.querySelector(
-    '.step[data-step="' + step + '"]'
+  var screens = document.querySelectorAll(
+    ".screen"
   );
 
-  if (activeStep) {
-    activeStep.classList.add("active");
-  }
-
-  var progress = document.getElementById("progress");
-
-  if (progress) {
-    progress.style.width =
-      ((step - 1) / 2) * 100 + "%";
-  }
-
-  window.scrollTo(0, 0);
-}
+  screens.forEach(function(screen) {
+    screen.classList.remove("active");
+  });
 
 
-function nextStep() {
-  if (state.currentStep === 1) {
-    collectChildInformation();
-
-    if (!state.child.name) {
-      alert("Please enter your child's name.");
-      return;
-    }
-
-    if (!state.story.type) {
-      alert("Please choose an adventure type.");
-      return;
-    }
-  }
-
-  if (state.currentStep === 2) {
-    collectPhotoInformation();
-
-    if (state.photos.length === 0) {
-      alert("Please add at least one photo.");
-      return;
-    }
-  }
-
-  if (state.currentStep < 3) {
-    showStep(state.currentStep + 1);
-  }
-}
-
-
-function previousStep() {
-  if (state.currentStep > 1) {
-    showStep(state.currentStep - 1);
-  }
-}
-
-
-/* =========================
-   ADVENTURE CARDS
-========================= */
-
-function setupAdventureCards() {
-  var container =
-    document.getElementById("storyTypeChoices");
-
-  if (!container) {
-    console.log("Adventure container not found");
-    return;
-  }
-
-  var cards = container.querySelectorAll(
-    "[data-value]"
+  var target = document.getElementById(
+    "step" + step
   );
 
-  cards.forEach(function(card) {
-
-    card.addEventListener("click", function() {
-
-      cards.forEach(function(item) {
-        item.classList.remove("selected");
-        item.setAttribute(
-          "aria-selected",
-          "false"
-        );
-      });
-
-      card.classList.add("selected");
-
-      card.setAttribute(
-        "aria-selected",
-        "true"
-      );
-
-      var selectedType =
-        card.getAttribute("data-value");
-
-      if (selectedType) {
-        state.story.type = selectedType;
-      }
-
-      console.log(
-        "Adventure selected:",
-        state.story.type
-      );
-    });
-
-  });
-
-  console.log("Adventure cards ready");
-}
+  if (target) {
+    target.classList.add("active");
+  }
 
 
-/* =========================
-   STORY OPTIONS
-========================= */
+  var stepLabel = document.getElementById(
+    "stepLabel"
+  );
 
-function setupOptionGroups() {
+  if (stepLabel) {
+    stepLabel.textContent =
+      "Step " + step + " of 3";
+  }
 
-  var optionGroups =
-    document.querySelectorAll(
-      "[data-story-option]"
-    );
 
-  optionGroups.forEach(function(group) {
+  var progressBar = document.getElementById(
+    "progressBar"
+  );
 
-    var options =
-      group.querySelectorAll(
-        "[data-value]"
-      );
+  if (progressBar) {
 
-    options.forEach(function(option) {
+    if (step === 1) {
+      progressBar.style.width = "0%";
+    }
 
-      option.addEventListener(
-        "click",
-        function() {
+    if (step === 2) {
+      progressBar.style.width = "50%";
+    }
 
-          options.forEach(function(item) {
-            item.classList.remove(
-              "selected"
-            );
+    if (step === 3) {
+      progressBar.style.width = "100%";
+    }
+  }
 
-            item.setAttribute(
-              "aria-selected",
-              "false"
-            );
-          });
 
-          option.classList.add(
-            "selected"
-          );
-
-          option.setAttribute(
-            "aria-selected",
-            "true"
-          );
-
-          var value =
-            option.getAttribute(
-              "data-value"
-            );
-
-          var optionName =
-            group.getAttribute(
-              "data-story-option"
-            );
-
-          if (optionName && value) {
-
-            if (
-              Object.prototype.hasOwnProperty.call(
-                state.story,
-                optionName
-              )
-            ) {
-              state.story[optionName] =
-                value;
-            }
-
-          }
-
-        }
-      );
-
-    });
-
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
   });
 }
 
 
-/* =========================
-   CHILD INFORMATION
-========================= */
+/* =========================================
+   COLLECT CHILD INFORMATION
+========================================= */
 
 function collectChildInformation() {
 
-  state.child.name = getValue([
-    "childName",
-    "name"
-  ]);
+  state.child.name =
+    getValue("childName");
 
-  state.child.age = getValue([
-    "childAge",
-    "age"
-  ]);
+  state.child.age =
+    getValue("childAge");
 
-  state.child.personality = getValue([
-    "childPersonality",
-    "personality"
-  ]);
+  state.child.personality =
+    getValue("personality");
 
-  state.child.favorites = getValue([
-    "childFavorites",
-    "favorites"
-  ]);
+  state.child.favorites =
+    getValue("favorites");
 
-  state.memories = getValue([
-    "memories",
-    "familyMemories",
-    "memoryText",
-    "storyMemories"
-  ]);
+  state.story.setting =
+    getValue("setting");
 
-  state.story.setting = getValue([
-    "storySetting",
-    "setting"
-  ]);
+  state.story.lesson =
+    getValue("lesson");
 
-  state.story.lesson = getValue([
-    "storyLesson",
-    "lesson"
-  ]);
+  state.story.length =
+    getValue("storyLength") ||
+    "medium";
 
-  state.story.length = getValue([
-    "storyLength",
-    "length"
-  ]);
-
-  state.story.tone = getValue([
-    "storyTone",
-    "tone"
-  ]);
+  state.story.tone =
+    getValue("storyTone") ||
+    "warm";
 }
 
 
-/* =========================
-   PHOTO UPLOADS
-========================= */
+/* =========================================
+   ADVENTURE CARDS
+========================================= */
+
+function setupAdventureCards() {
+
+  var container =
+    document.getElementById(
+      "storyTypeChoices"
+    );
+
+  if (!container) {
+    console.log(
+      "Adventure container not found"
+    );
+
+    return;
+  }
+
+
+  var cards =
+    container.querySelectorAll(
+      ".choice-card"
+    );
+
+
+  cards.forEach(function(card) {
+
+    card.addEventListener(
+      "click",
+      function() {
+
+        cards.forEach(function(item) {
+
+          item.classList.remove(
+            "selected"
+          );
+
+          item.setAttribute(
+            "aria-selected",
+            "false"
+          );
+
+        });
+
+
+        card.classList.add(
+          "selected"
+        );
+
+
+        card.setAttribute(
+          "aria-selected",
+          "true"
+        );
+
+
+        var selectedType =
+          card.getAttribute(
+            "data-value"
+          );
+
+
+        if (selectedType) {
+
+          state.story.type =
+            selectedType;
+
+        }
+
+
+        console.log(
+          "Adventure selected:",
+          state.story.type
+        );
+
+      }
+    );
+
+  });
+
+
+  console.log(
+    "Adventure cards ready"
+  );
+}
+
+
+/* =========================================
+   PHOTO UPLOAD
+========================================= */
 
 function setupPhotoUpload() {
 
   var input =
-    document.getElementById("photoInput");
-
-  var uploadArea =
-    document.getElementById("uploadArea");
-
-  var addPhotoButton =
-    document.getElementById("addPhotoButton");
-
-  if (addPhotoButton && input) {
-
-    addPhotoButton.addEventListener(
-      "click",
-      function() {
-        input.click();
-      }
+    document.getElementById(
+      "photoInput"
     );
 
-  }
 
-  if (uploadArea && input) {
-
-    uploadArea.addEventListener(
-      "click",
-      function(event) {
-
-        if (
-          event.target === uploadArea ||
-          event.target.closest(".upload-content")
-        ) {
-          input.click();
-        }
-
-      }
+  var dropZone =
+    document.getElementById(
+      "dropZone"
     );
 
-  }
 
-  if (input) {
+  if (!input) {
 
-    input.addEventListener(
-      "change",
-      function(event) {
-
-        var files =
-          Array.from(
-            event.target.files || []
-          );
-
-        addPhotos(files);
-
-        input.value = "";
-
-      }
+    console.log(
+      "Photo input not found"
     );
 
+    return;
   }
 
-  if (uploadArea) {
 
-    uploadArea.addEventListener(
+  input.addEventListener(
+    "change",
+    function(event) {
+
+      var files =
+        Array.from(
+          event.target.files || []
+        );
+
+
+      addPhotos(files);
+
+
+      input.value = "";
+
+    }
+  );
+
+
+  if (dropZone) {
+
+    dropZone.addEventListener(
       "dragover",
       function(event) {
 
         event.preventDefault();
 
-        uploadArea.classList.add(
+        dropZone.classList.add(
           "dragging"
         );
 
       }
     );
 
-    uploadArea.addEventListener(
+
+    dropZone.addEventListener(
       "dragleave",
       function() {
 
-        uploadArea.classList.remove(
+        dropZone.classList.remove(
           "dragging"
         );
 
       }
     );
 
-    uploadArea.addEventListener(
+
+    dropZone.addEventListener(
       "drop",
       function(event) {
 
         event.preventDefault();
 
-        uploadArea.classList.remove(
+        dropZone.classList.remove(
           "dragging"
         );
+
 
         var files =
           Array.from(
             event.dataTransfer.files || []
           );
 
+
         addPhotos(files);
 
       }
     );
 
   }
+
+
+  console.log(
+    "Photo upload ready"
+  );
 }
 
+
+/* =========================================
+   ADD PHOTOS
+========================================= */
 
 function addPhotos(files) {
 
   files.forEach(function(file) {
 
-    if (!file.type.startsWith("image/")) {
+    if (
+      !file.type ||
+      !file.type.startsWith(
+        "image/"
+      )
+    ) {
       return;
     }
 
+
     var photo = {
+
       id:
         Date.now() +
         "-" +
@@ -449,140 +381,78 @@ function addPhotos(files) {
       url:
         URL.createObjectURL(file),
 
-      memory: "",
+      memory: ""
 
-      description: ""
     };
 
-    state.photos.push(photo);
+
+    state.photos.push(
+      photo
+    );
 
   });
 
+
   renderPhotos();
+
 }
 
 
-function removePhoto(id) {
-
-  var photo =
-    state.photos.find(function(item) {
-      return item.id === id;
-    });
-
-  if (photo && photo.url) {
-    URL.revokeObjectURL(
-      photo.url
-    );
-  }
-
-  state.photos =
-    state.photos.filter(function(item) {
-      return item.id !== id;
-    });
-
-  renderPhotos();
-}
-
-
-function movePhoto(id, direction) {
-
-  var index =
-    state.photos.findIndex(
-      function(item) {
-        return item.id === id;
-      }
-    );
-
-  if (index === -1) {
-    return;
-  }
-
-  var newIndex =
-    index + direction;
-
-  if (
-    newIndex < 0 ||
-    newIndex >= state.photos.length
-  ) {
-    return;
-  }
-
-  var temp =
-    state.photos[index];
-
-  state.photos[index] =
-    state.photos[newIndex];
-
-  state.photos[newIndex] =
-    temp;
-
-  renderPhotos();
-}
-
-
-/* =========================
-   PHOTO RENDERING
-========================= */
+/* =========================================
+   RENDER PHOTOS
+========================================= */
 
 function renderPhotos() {
 
-  var container =
+  var list =
     document.getElementById(
-      "photoPreview"
+      "photoList"
     );
 
-  if (!container) {
-    container =
-      document.getElementById(
-        "photoGrid"
-      );
-  }
 
-  if (!container) {
+  if (!list) {
     return;
   }
 
-  container.innerHTML = "";
+
+  list.innerHTML = "";
+
 
   state.photos.forEach(
     function(photo, index) {
 
-      var wrapper =
+      var item =
         document.createElement(
           "div"
         );
 
-      wrapper.className =
-        "photo-card";
 
-      wrapper.setAttribute(
+      item.className =
+        "photo-item";
+
+
+      item.setAttribute(
         "data-photo-id",
         photo.id
       );
 
-      wrapper.innerHTML =
-        '<div class="photo-image-wrap">' +
+
+      item.innerHTML =
+
+        '<div class="photo-preview">' +
 
           '<img src="' +
           escapeHtml(photo.url) +
-          '" alt="Story photo ' +
+          '" alt="Memory photo ' +
           (index + 1) +
           '">' +
 
-          '<button type="button" ' +
-          'class="remove-photo" ' +
-          'data-remove-photo="' +
-          escapeHtml(photo.id) +
-          '">' +
-          "×" +
-          "</button>" +
-
         "</div>" +
 
-        '<div class="photo-card-body">' +
+        '<div class="photo-info">' +
 
           '<div class="photo-number">' +
-          "Photo " +
+          "Memory " +
           (index + 1) +
           "</div>" +
 
@@ -591,42 +461,44 @@ function renderPhotos() {
           'data-photo-memory="' +
           escapeHtml(photo.id) +
           '" ' +
-          'placeholder="What is happening in this photo? Add a memory, place, people, or special moment...">' +
+          'placeholder="Tell us what happened in this photo...">' +
           escapeHtml(
-            photo.memory || ""
+            photo.memory
           ) +
           "</textarea>" +
 
-          '<div class="photo-actions">' +
+        "</div>" +
 
-            '<button type="button" ' +
-            'data-move-photo="' +
-            escapeHtml(photo.id) +
-            '" data-direction="-1">' +
-            "←" +
-            "</button>" +
+        '<button ' +
+        'type="button" ' +
+        'class="remove-photo" ' +
+        'data-remove-photo="' +
+        escapeHtml(photo.id) +
+        '">' +
 
-            '<button type="button" ' +
-            'data-move-photo="' +
-            escapeHtml(photo.id) +
-            '" data-direction="1">' +
-            "→" +
-            "</button>" +
+        "×" +
 
-          "</div>" +
+        "</button>";
 
-        "</div>";
 
-      container.appendChild(
-        wrapper
+      list.appendChild(
+        item
       );
 
     }
   );
 
+
   setupPhotoControls();
+
+
+  updatePhotoCount();
 }
 
+
+/* =========================================
+   PHOTO CONTROLS
+========================================= */
 
 function setupPhotoControls() {
 
@@ -635,32 +507,8 @@ function setupPhotoControls() {
       "[data-remove-photo]"
     );
 
+
   removeButtons.forEach(
-    function(button) {
-
-      button.addEventListener(
-        "click",
-        function() {
-
-          removePhoto(
-            button.getAttribute(
-              "data-remove-photo"
-            )
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-  var moveButtons =
-    document.querySelectorAll(
-      "[data-move-photo]"
-    );
-
-  moveButtons.forEach(
     function(button) {
 
       button.addEventListener(
@@ -669,21 +517,11 @@ function setupPhotoControls() {
 
           var id =
             button.getAttribute(
-              "data-move-photo"
+              "data-remove-photo"
             );
 
-          var direction =
-            parseInt(
-              button.getAttribute(
-                "data-direction"
-              ),
-              10
-            );
 
-          movePhoto(
-            id,
-            direction
-          );
+          removePhoto(id);
 
         }
       );
@@ -696,6 +534,7 @@ function setupPhotoControls() {
     document.querySelectorAll(
       "[data-photo-memory]"
     );
+
 
   memoryInputs.forEach(
     function(input) {
@@ -709,16 +548,22 @@ function setupPhotoControls() {
               "data-photo-memory"
             );
 
+
           var photo =
             state.photos.find(
               function(item) {
+
                 return item.id === id;
+
               }
             );
 
+
           if (photo) {
+
             photo.memory =
               input.value;
+
           }
 
         }
@@ -730,18 +575,230 @@ function setupPhotoControls() {
 }
 
 
-/* =========================
-   COLLECT PHOTO DATA
-========================= */
+/* =========================================
+   REMOVE PHOTO
+========================================= */
 
-function collectPhotoInformation() {
+function removePhoto(id) {
 
-  var memoryInputs =
+  var photo =
+    state.photos.find(
+      function(item) {
+
+        return item.id === id;
+
+      }
+    );
+
+
+  if (
+    photo &&
+    photo.url
+  ) {
+
+    URL.revokeObjectURL(
+      photo.url
+    );
+
+  }
+
+
+  state.photos =
+    state.photos.filter(
+      function(item) {
+
+        return item.id !== id;
+
+      }
+    );
+
+
+  renderPhotos();
+
+}
+
+
+/* =========================================
+   PHOTO COUNT
+========================================= */
+
+function updatePhotoCount() {
+
+  var count =
+    document.getElementById(
+      "photoCount"
+    );
+
+
+  if (!count) {
+    return;
+  }
+
+
+  var number =
+    state.photos.length;
+
+
+  if (number === 1) {
+
+    count.textContent =
+      "1 photo";
+
+  } else {
+
+    count.textContent =
+      number + " photos";
+
+  }
+
+}
+
+
+/* =========================================
+   CONTINUE TO PHOTOS
+========================================= */
+
+function setupNavigation() {
+
+  var continueButton =
+    document.getElementById(
+      "continueToPhotos"
+    );
+
+
+  if (continueButton) {
+
+    continueButton.addEventListener(
+      "click",
+      function(event) {
+
+        event.preventDefault();
+
+
+        collectChildInformation();
+
+
+        if (!state.child.name) {
+
+          alert(
+            "Please enter your child's name."
+          );
+
+          document
+            .getElementById(
+              "childName"
+            )
+            .focus();
+
+          return;
+        }
+
+
+        if (!state.child.age) {
+
+          alert(
+            "Please choose your child's age."
+          );
+
+          document
+            .getElementById(
+              "childAge"
+            )
+            .focus();
+
+          return;
+        }
+
+
+        if (!state.story.type) {
+
+          state.story.type =
+            "Magical Adventure";
+
+        }
+
+
+        showStep(2);
+
+      }
+    );
+
+  }
+
+
+  var backButton =
+    document.getElementById(
+      "backToDetails"
+    );
+
+
+  if (backButton) {
+
+    backButton.addEventListener(
+      "click",
+      function(event) {
+
+        event.preventDefault();
+
+        showStep(1);
+
+      }
+    );
+
+  }
+
+}
+
+
+/* =========================================
+   CREATE STORY BUTTON
+========================================= */
+
+function setupCreateStoryButton() {
+
+  var button =
+    document.getElementById(
+      "createStoryBtn"
+    );
+
+
+  if (!button) {
+
+    console.log(
+      "Create story button not found"
+    );
+
+    return;
+  }
+
+
+  button.addEventListener(
+    "click",
+    function(event) {
+
+      event.preventDefault();
+
+      generateStory();
+
+    }
+  );
+
+}
+
+
+/* =========================================
+   COLLECT PHOTO MEMORIES
+========================================= */
+
+function collectPhotoMemories() {
+
+  var inputs =
     document.querySelectorAll(
       "[data-photo-memory]"
     );
 
-  memoryInputs.forEach(
+
+  inputs.forEach(
     function(input) {
 
       var id =
@@ -749,33 +806,43 @@ function collectPhotoInformation() {
           "data-photo-memory"
         );
 
+
       var photo =
         state.photos.find(
           function(item) {
+
             return item.id === id;
+
           }
         );
 
+
       if (photo) {
+
         photo.memory =
           input.value;
+
       }
 
     }
   );
+
 }
 
 
-/* =========================
+/* =========================================
    GENERATE STORY
-========================= */
+========================================= */
 
 async function generateStory() {
 
   collectChildInformation();
-  collectPhotoInformation();
+
+  collectPhotoMemories();
+
 
   if (!state.child.name) {
+
     alert(
       "Please enter your child's name."
     );
@@ -785,22 +852,14 @@ async function generateStory() {
     return;
   }
 
-  if (!state.story.type) {
-    alert(
-      "Please choose an adventure."
-    );
 
-    showStep(1);
+  if (
+    state.photos.length === 0
+  ) {
 
-    return;
-  }
-
-  if (state.photos.length === 0) {
     alert(
       "Please add at least one photo."
     );
-
-    showStep(2);
 
     return;
   }
@@ -808,26 +867,32 @@ async function generateStory() {
 
   var button =
     document.getElementById(
-      "generateStoryButton"
+      "createStoryBtn"
     );
 
+
   if (button) {
+
     button.disabled = true;
-    button.textContent =
-      "Creating your story...";
+
+    button.innerHTML =
+      "Creating their story ✨";
+
   }
 
 
-  var memories =
+  var photoMemories =
     state.photos.map(
       function(photo, index) {
 
         return {
-          order: index + 1,
+
+          order:
+            index + 1,
+
           memory:
-            photo.memory || "",
-          description:
-            photo.description || ""
+            photo.memory || ""
+
         };
 
       }
@@ -835,35 +900,53 @@ async function generateStory() {
 
 
   var payload = {
-    child: state.child,
 
-    story: state.story,
+    child:
+      state.child,
+
+    story:
+      state.story,
 
     memories: {
+
       general:
         state.memories,
 
       photos:
-        memories
+        photoMemories
+
     }
+
   };
 
 
   try {
 
+    console.log(
+      "Sending story request...",
+      payload
+    );
+
+
     var response =
       await fetch(
         "/api/generate-story",
         {
+
           method: "POST",
 
           headers: {
+
             "Content-Type":
               "application/json"
+
           },
 
           body:
-            JSON.stringify(payload)
+            JSON.stringify(
+              payload
+            )
+
         }
       );
 
@@ -872,6 +955,7 @@ async function generateStory() {
 
       var errorText =
         await response.text();
+
 
       throw new Error(
         errorText ||
@@ -884,15 +968,24 @@ async function generateStory() {
     var result =
       await response.json();
 
+
+    console.log(
+      "Story generated:",
+      result
+    );
+
+
     state.generatedStory =
       result;
 
 
-    renderStory(
+    renderGeneratedStory(
       result
     );
 
+
     showStep(3);
+
 
   } catch (error) {
 
@@ -901,16 +994,21 @@ async function generateStory() {
       error
     );
 
+
     alert(
       "We couldn't create the story yet. Please try again."
     );
 
+
   } finally {
 
     if (button) {
+
       button.disabled = false;
-      button.textContent =
-        "Create My Story";
+
+      button.innerHTML =
+        'Create their story <span>✨</span>';
+
     }
 
   }
@@ -918,28 +1016,13 @@ async function generateStory() {
 }
 
 
-/* =========================
-   STORY PREVIEW
-========================= */
+/* =========================================
+   RENDER GENERATED STORY
+========================================= */
 
-function renderStory(result) {
-
-  var container =
-    document.getElementById(
-      "storyResult"
-    );
-
-  if (!container) {
-    container =
-      document.getElementById(
-        "storyPreview"
-      );
-  }
-
-  if (!container) {
-    return;
-  }
-
+function renderGeneratedStory(
+  result
+) {
 
   var story =
     result.story ||
@@ -948,7 +1031,12 @@ function renderStory(result) {
 
   var title =
     story.title ||
-    "Our Adventure";
+    "Once Upon a Time...";
+
+
+  var subtitle =
+    story.subtitle ||
+    "";
 
 
   var pages =
@@ -961,274 +1049,369 @@ function renderStory(result) {
     "";
 
 
-  var html =
-    '<div class="storybook">' +
+  var storyTitle =
+    document.getElementById(
+      "storyTitle"
+    );
 
-      '<div class="storybook-cover">' +
 
-        "<h1>" +
-        escapeHtml(title) +
-        "</h1>" +
+  if (storyTitle) {
 
-        "<p>" +
-        escapeHtml(
-          state.child.name
-        ) +
-        "'s Adventure" +
-        "</p>" +
+    storyTitle.textContent =
+      title;
 
-      "</div>";
+  }
+
+
+  var storySubtitle =
+    document.getElementById(
+      "storySubtitle"
+    );
+
+
+  if (storySubtitle) {
+
+    storySubtitle.textContent =
+      subtitle;
+
+  }
+
+
+  var coverName =
+    document.getElementById(
+      "coverChildName"
+    );
+
+
+  if (coverName) {
+
+    coverName.textContent =
+      state.child.name;
+
+  }
+
+
+  var coverType =
+    document.getElementById(
+      "coverStoryType"
+    );
+
+
+  if (coverType) {
+
+    coverType.textContent =
+      state.story.type;
+
+  }
+
+
+  var coverPhotoWrap =
+    document.getElementById(
+      "coverPhotoWrap"
+    );
+
+
+  if (
+    coverPhotoWrap &&
+    state.photos.length > 0
+  ) {
+
+    coverPhotoWrap.innerHTML =
+
+      '<img src="' +
+      escapeHtml(
+        state.photos[0].url
+      ) +
+      '" alt="' +
+      escapeHtml(
+        state.child.name
+      ) +
+      '">';
+
+  }
+
+
+  var pagesContainer =
+    document.getElementById(
+      "generatedPages"
+    );
+
+
+  if (!pagesContainer) {
+    return;
+  }
+
+
+  pagesContainer.innerHTML =
+    "";
 
 
   pages.forEach(
     function(page, index) {
 
-      var pagePhoto =
+      var article =
+        document.createElement(
+          "article"
+        );
+
+
+      article.className =
+        "story-page";
+
+
+      var photo =
         state.photos[index];
 
 
-      html +=
-        '<div class="story-page">' +
-
-          '<div class="story-page-image">';
+      var imageHtml =
+        "";
 
 
-      if (pagePhoto) {
+      if (photo) {
 
-        html +=
-          '<img src="' +
-          escapeHtml(
-            pagePhoto.url
-          ) +
-          '" alt="Story page ' +
-          (index + 1) +
-          '">';
+        imageHtml =
+
+          '<div class="story-image">' +
+
+            '<img src="' +
+            escapeHtml(
+              photo.url
+            ) +
+            '" alt="Story memory ' +
+            (index + 1) +
+            '">' +
+
+          "</div>";
 
       }
 
 
-      html +=
-          "</div>" +
+      article.innerHTML =
 
-          '<div class="story-page-text">' +
+        imageHtml +
 
-            "<h2>" +
-            escapeHtml(
-              page.title ||
-              "Adventure " +
-              (index + 1)
-            ) +
-            "</h2>" +
+        '<div class="story-content">' +
 
-            "<p>" +
-            escapeHtml(
-              page.text ||
-              page.content ||
-              ""
-            ) +
-            "</p>" +
+          "<span>" +
+          "Chapter " +
+          (index + 1) +
+          "</span>" +
 
-          "</div>" +
+          "<h2>" +
+          escapeHtml(
+            page.title ||
+            ""
+          ) +
+          "</h2>" +
+
+          "<p>" +
+          escapeHtml(
+            page.text ||
+            page.content ||
+            ""
+          ) +
+          "</p>" +
 
         "</div>";
 
-    }
-  );
 
-
-  if (ending) {
-
-    html +=
-      '<div class="storybook-ending">' +
-
-        "<h2>The End</h2>" +
-
-        "<p>" +
-        escapeHtml(ending) +
-        "</p>" +
-
-      "</div>";
-
-  }
-
-
-  html +=
-    "</div>";
-
-
-  container.innerHTML =
-    html;
-}
-
-
-/* =========================
-   BUTTON SETUP
-========================= */
-
-function setupButtons() {
-
-  var nextButtons =
-    document.querySelectorAll(
-      "[data-next]"
-    );
-
-  nextButtons.forEach(
-    function(button) {
-
-      button.addEventListener(
-        "click",
-        function(event) {
-
-          event.preventDefault();
-
-          nextStep();
-
-        }
+      pagesContainer.appendChild(
+        article
       );
 
     }
   );
 
 
-  var backButtons =
-    document.querySelectorAll(
-      "[data-back]"
-    );
-
-  backButtons.forEach(
-    function(button) {
-
-      button.addEventListener(
-        "click",
-        function(event) {
-
-          event.preventDefault();
-
-          previousStep();
-
-        }
-      );
-
-    }
-  );
-
-
-  var generateButton =
+  var endingText =
     document.getElementById(
-      "generateStoryButton"
+      "endingText"
     );
 
-  if (generateButton) {
 
-    generateButton.addEventListener(
-      "click",
-      function(event) {
+  if (endingText) {
 
-        event.preventDefault();
-
-        generateStory();
-
-      }
-    );
-
-  }
-
-
-  var startOverButton =
-    document.getElementById(
-      "startOverButton"
-    );
-
-  if (startOverButton) {
-
-    startOverButton.addEventListener(
-      "click",
-      function() {
-
-        resetStory();
-
-      }
-    );
-
-  }
-
-
-  var editButton =
-    document.getElementById(
-      "editStoryButton"
-    );
-
-  if (editButton) {
-
-    editButton.addEventListener(
-      "click",
-      function() {
-
-        showStep(1);
-
-      }
-    );
-
-  }
-
-
-  var printButton =
-    document.getElementById(
-      "printStoryButton"
-    );
-
-  if (printButton) {
-
-    printButton.addEventListener(
-      "click",
-      function() {
-
-        window.print();
-
-      }
-    );
+    endingText.textContent =
+      ending;
 
   }
 
 }
 
 
-/* =========================
-   RESET
-========================= */
+/* =========================================
+   EDIT STORY
+========================================= */
 
-function resetStory() {
+function setupEditButton() {
+
+  var button =
+    document.getElementById(
+      "editStoryBtn"
+    );
+
+
+  if (!button) {
+    return;
+  }
+
+
+  button.addEventListener(
+    "click",
+    function() {
+
+      showStep(1);
+
+    }
+  );
+
+}
+
+
+/* =========================================
+   START OVER
+========================================= */
+
+function setupStartOverButton() {
+
+  var button =
+    document.getElementById(
+      "startOverBtn"
+    );
+
+
+  if (!button) {
+    return;
+  }
+
+
+  button.addEventListener(
+    "click",
+    function() {
+
+      resetApp();
+
+    }
+  );
+
+}
+
+
+/* =========================================
+   PRINT STORY
+========================================= */
+
+function setupPrintButton() {
+
+  var button =
+    document.getElementById(
+      "printStoryBtn"
+    );
+
+
+  if (!button) {
+    return;
+  }
+
+
+  button.addEventListener(
+    "click",
+    function() {
+
+      window.print();
+
+    }
+  );
+
+}
+
+
+/* =========================================
+   ADD ANOTHER MEMORY
+========================================= */
+
+function setupAddMemoryButton() {
+
+  var button =
+    document.getElementById(
+      "addMemoryBtn"
+    );
+
+
+  if (!button) {
+    return;
+  }
+
+
+  button.addEventListener(
+    "click",
+    function() {
+
+      var input =
+        document.getElementById(
+          "photoInput"
+        );
+
+
+      if (input) {
+
+        input.click();
+
+      }
+
+    }
+  );
+
+}
+
+
+/* =========================================
+   RESET APP
+========================================= */
+
+function resetApp() {
 
   state.currentStep = 1;
 
+
   state.child = {
+
     name: "",
     age: "",
     personality: "",
     favorites: ""
+
   };
+
 
   state.story = {
-    type: "",
+
+    type: "Magical Adventure",
     setting: "",
     lesson: "",
-    length: "",
-    tone: ""
+    length: "medium",
+    tone: "warm"
+
   };
 
+
   state.memories = "";
+
 
   state.photos.forEach(
     function(photo) {
 
       if (photo.url) {
+
         URL.revokeObjectURL(
           photo.url
         );
+
       }
 
     }
   );
+
 
   state.photos = [];
 
@@ -1236,39 +1419,73 @@ function resetStory() {
     null;
 
 
-  var forms =
+  var fields =
     document.querySelectorAll(
-      "input, textarea"
+      "input, textarea, select"
     );
 
-  forms.forEach(
-    function(input) {
+
+  fields.forEach(
+    function(field) {
 
       if (
-        input.type === "file"
+        field.type === "file"
       ) {
-        input.value = "";
+
+        field.value = "";
+
       } else {
-        input.value = "";
+
+        field.value = "";
+
       }
 
     }
   );
 
 
-  var selected =
-    document.querySelectorAll(
-      ".selected"
+  var length =
+    document.getElementById(
+      "storyLength"
     );
 
-  selected.forEach(
-    function(item) {
 
-      item.classList.remove(
+  if (length) {
+
+    length.value =
+      "medium";
+
+  }
+
+
+  var tone =
+    document.getElementById(
+      "storyTone"
+    );
+
+
+  if (tone) {
+
+    tone.value =
+      "warm";
+
+  }
+
+
+  var cards =
+    document.querySelectorAll(
+      ".choice-card"
+    );
+
+
+  cards.forEach(
+    function(card) {
+
+      card.classList.remove(
         "selected"
       );
 
-      item.setAttribute(
+      card.setAttribute(
         "aria-selected",
         "false"
       );
@@ -1277,73 +1494,82 @@ function resetStory() {
   );
 
 
-  var photoPreview =
-    document.getElementById(
-      "photoPreview"
+  var firstCard =
+    document.querySelector(
+      ".choice-card"
     );
 
-  if (photoPreview) {
-    photoPreview.innerHTML = "";
+
+  if (firstCard) {
+
+    firstCard.classList.add(
+      "selected"
+    );
+
+    firstCard.setAttribute(
+      "aria-selected",
+      "true"
+    );
+
   }
 
 
-  var photoGrid =
+  var list =
     document.getElementById(
-      "photoGrid"
+      "photoList"
     );
 
-  if (photoGrid) {
-    photoGrid.innerHTML = "";
+
+  if (list) {
+
+    list.innerHTML = "";
+
   }
 
 
-  var storyResult =
-    document.getElementById(
-      "storyResult"
-    );
-
-  if (storyResult) {
-    storyResult.innerHTML = "";
-  }
-
-
-  var storyPreview =
-    document.getElementById(
-      "storyPreview"
-    );
-
-  if (storyPreview) {
-    storyPreview.innerHTML = "";
-  }
+  updatePhotoCount();
 
 
   showStep(1);
+
 }
 
 
-/* =========================
-   INITIALIZATION
-========================= */
+/* =========================================
+   INITIALIZE APPLICATION
+========================================= */
 
 function initApp() {
 
   console.log(
-    "Onceuponmychild app initializing..."
+    "Once Upon My Child initializing..."
   );
+
 
   setupAdventureCards();
 
-  setupOptionGroups();
+  setupNavigation();
 
   setupPhotoUpload();
 
-  setupButtons();
+  setupCreateStoryButton();
+
+  setupEditButton();
+
+  setupStartOverButton();
+
+  setupPrintButton();
+
+  setupAddMemoryButton();
+
 
   showStep(1);
 
+
   console.log(
-    "Onceuponmychild app ready"
+    "Once Upon My Child ready"
   );
+
 }
 
 
